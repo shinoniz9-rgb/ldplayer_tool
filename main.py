@@ -391,7 +391,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.card_game = ctk.CTkFrame(self, corner_radius=8)
         self.card_game.grid(row=2, column=0, padx=(15, 4), pady=4, sticky="nsew")
         self.card_game.grid_columnconfigure((0, 1), weight=1)
-        self.card_game.grid_columnconfigure(2, weight=0)
+        self.card_game.grid_columnconfigure((2, 3), weight=0)
         self.card_game.grid_rowconfigure((0, 1), weight=1)
 
         # Label tiêu đề card
@@ -401,7 +401,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="normal"),
             text_color="#10B981"
         )
-        lbl_card_title.grid(row=0, column=0, columnspan=3, padx=10, pady=(6, 4), sticky="w")
+        lbl_card_title.grid(row=0, column=0, columnspan=4, padx=10, pady=(6, 4), sticky="w")
 
         # Nút "TS Origin" (Nằm bên trái - Column 0)
         self.btn_enter_game = ctk.CTkButton(
@@ -430,7 +430,20 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.combo_server.set("Điêu Thuyền")
         self.combo_server.grid(row=1, column=1, padx=4, pady=(0, 8), sticky="nsew")
 
-        # Nút "Dừng" (Kích thước width=85 bằng nút Làm mới - Column 2)
+        # Nút "Chạy" (Nằm giữa menu server và nút Dừng - Column 2)
+        self.btn_run = ctk.CTkButton(
+            self.card_game,
+            text="Chạy",
+            width=85,
+            height=34,
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="normal"),
+            fg_color="#2563EB",
+            hover_color="#1D4ED8",
+            command=self.xu_ly_nut_chay
+        )
+        self.btn_run.grid(row=1, column=2, padx=4, pady=(0, 8), sticky="ns")
+
+        # Nút "Dừng" (Column 3)
         self.btn_stop = ctk.CTkButton(
             self.card_game, 
             text="Dừng", 
@@ -441,7 +454,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             hover_color="#B91C1C",
             command=self.dung_tat_ca_hoat_dong
         )
-        self.btn_stop.grid(row=1, column=2, padx=(4, 10), pady=(0, 8), sticky="ns")
+        self.btn_stop.grid(row=1, column=3, padx=(4, 10), pady=(0, 8), sticky="ns")
 
     def _on_server_changed(self, choice: str):
         """Tự động ghi nhớ vị trí máy chủ được chọn để khôi phục cho lần mở tool sau"""
@@ -553,89 +566,36 @@ class ToolLDPlayerGUI(ctk.CTk):
         self._on_checkbox_toggled()
 
     def _on_switch_B_toggled(self):
-        """Callback riêng cho công tắc Card C (DỊ GIỚI ĐÊM): Khi trượt sang OFF -> Ngắt tiến trình & giữ nguyên ô tích"""
+        """Callback công tắc Card DỊ GIỚI: Gạt ON ➔ Sẵn sàng chờ nút Chạy; Gạt OFF ➔ Dừng tiến trình card này"""
         self._on_checkbox_toggled()
         if not self.var_switch_B.get():
             self.save_config()
-            self.log_info("🛑 [CARD C: DỊ GIỚI ĐÊM] Công tắc gạt về OFF ➔ Đã ngắt tiến trình Card C (giữ nguyên các ô tích)!")
+            self.log_info("🛑 [CARD DỊ GIỚI] Công tắc gạt về OFF ➔ Đã ngắt tiến trình Card Dị Giới!")
         else:
-            self.stop_requested = False
-            tab_name, tab_index = self._get_selected_ld_info()
-            if tab_index is None:
-                self.log_error("Vui lòng chọn một Tab LDPlayer trước khi bật công tắc Dị Giới!")
-                self.var_switch_B.set(False)
-                self.save_config()
-                return
-
-            dnconsole_path = os.path.join(self.ld_path, "dnconsole.exe")
-            if not os.path.exists(dnconsole_path):
-                dnconsole_path = os.path.join(self.ld_path, "ldconsole.exe")
-
-            if not os.path.exists(dnconsole_path):
-                self.log_error(f"Không tìm thấy ldconsole/dnconsole tại: {self.ld_path}")
-                self.var_switch_B.set(False)
-                self.save_config()
-                return
-
-            self.log_info(f"⚡ [DỊ GIỚI ĐÊM] Công tắc vừa trượt ON ➔ Khởi chạy ngay thao tác trên Tab: {tab_name} (Index: {tab_index})...")
-            threading.Thread(target=self._execute_card_B_di_gioi, args=(dnconsole_path, tab_name, tab_index), daemon=True).start()
+            self.save_config()
+            self.log_info("⚡ [CARD DỊ GIỚI] Công tắc gạt sang ON ➔ Sẵn sàng thực thi khi bấm nút 'Chạy'.")
 
     def _on_switch_E_toggled(self):
-        """Callback riêng cho công tắc Card A (PHỤ BẢN ĐƠN / ĐỘI): Khi trượt sang OFF -> Ngắt tiến trình & giữ nguyên ô tích"""
+        """Callback công tắc Card PHỤ BẢN ĐƠN / ĐỘI: Gạt ON ➔ Sẵn sàng chờ nút Chạy; Gạt OFF ➔ Dừng tiến trình card này"""
         self._on_checkbox_toggled()
         if not self.var_switch_E.get():
             self._update_card_G_visibility()
             self.save_config()
-            self.log_info("🛑 [CARD A: PHỤ BẢN ĐƠN / ĐỘI] Công tắc gạt về OFF ➔ Đã ngắt tiến trình Card A (giữ nguyên các ô tích)!")
+            self.log_info("🛑 [CARD PHỤ BẢN ĐƠN / ĐỘI] Công tắc gạt về OFF ➔ Đã ngắt tiến trình Card Phụ Bản!")
         else:
-            self.stop_requested = False
-            tab_name, tab_index = self._get_selected_ld_info()
-            if tab_index is None:
-                self.log_error("Vui lòng chọn một Tab LDPlayer trước khi bật công tắc Phụ Bản Đơn / Đội!")
-                self.var_switch_E.set(False)
-                self.save_config()
-                return
-
-            dnconsole_path = os.path.join(self.ld_path, "dnconsole.exe")
-            if not os.path.exists(dnconsole_path):
-                dnconsole_path = os.path.join(self.ld_path, "ldconsole.exe")
-
-            if not os.path.exists(dnconsole_path):
-                self.log_error(f"Không tìm thấy ldconsole/dnconsole tại: {self.ld_path}")
-                self.var_switch_E.set(False)
-                self.save_config()
-                return
-
-            self.log_info(f"⚡ [PHỤ BẢN ĐƠN / ĐỘI] Công tắc vừa trượt ON ➔ Khởi chạy ngay thao tác trên Tab: {tab_name} (Index: {tab_index})...")
-            threading.Thread(target=self._execute_card_E_phu_ban_doi, args=(dnconsole_path, tab_name, tab_index), daemon=True).start()
+            self._update_card_G_visibility()
+            self.save_config()
+            self.log_info("⚡ [CARD PHỤ BẢN ĐƠN / ĐỘI] Công tắc gạt sang ON ➔ Sẵn sàng thực thi khi bấm nút 'Chạy'.")
 
     def _on_switch_C_toggled(self):
-        """Callback riêng cho công tắc Card B (BOSS THẾ GIỚI): Khi trượt sang OFF -> Ngắt tiến trình & giữ nguyên ô tích"""
+        """Callback công tắc Card BOSS THẾ GIỚI: Gạt ON ➔ Sẵn sàng chờ nút Chạy; Gạt OFF ➔ Dừng tiến trình card này"""
         self._on_checkbox_toggled()
         if not self.var_switch_C.get():
             self.save_config()
-            self.log_info("🛑 [CARD B: BOSS THẾ GIỚI] Công tắc gạt về OFF ➔ Đã ngắt tiến trình Card B (giữ nguyên các ô tích)!")
+            self.log_info("🛑 [CARD BOSS THẾ GIỚI] Công tắc gạt về OFF ➔ Đã ngắt tiến trình Card Boss Thế Giới!")
         else:
-            self.stop_requested = False
-            tab_name, tab_index = self._get_selected_ld_info()
-            if tab_index is None:
-                self.log_error("Vui lòng chọn một Tab LDPlayer trước khi bật công tắc Boss Thế Giới!")
-                self.var_switch_C.set(False)
-                self.save_config()
-                return
-
-            dnconsole_path = os.path.join(self.ld_path, "dnconsole.exe")
-            if not os.path.exists(dnconsole_path):
-                dnconsole_path = os.path.join(self.ld_path, "ldconsole.exe")
-
-            if not os.path.exists(dnconsole_path):
-                self.log_error(f"Không tìm thấy ldconsole/dnconsole tại: {self.ld_path}")
-                self.var_switch_C.set(False)
-                self.save_config()
-                return
-
-            self.log_info(f"⚡ [BOSS THẾ GIỚI] Công tắc vừa trượt ON ➔ Khởi chạy ngay thao tác trên Tab: {tab_name} (Index: {tab_index})...")
-            threading.Thread(target=self._execute_card_C_boss_tg, args=(dnconsole_path, tab_name, tab_index), daemon=True).start()
+            self.save_config()
+            self.log_info("⚡ [CARD BOSS THẾ GIỚI] Công tắc gạt sang ON ➔ Sẵn sàng thực thi khi bấm nút 'Chạy'.")
 
     def _on_switch_D_toggled(self):
         """Callback riêng cho công tắc Card E (40 NPC): Khi trượt sang OFF -> Ngắt tiến trình & giữ nguyên ô tích"""
@@ -868,17 +828,13 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.combo_C_char.set(char_options[0] if char_options else "Xuất Chiến")
         self.combo_C_char.grid(row=1, column=0, padx=12, pady=1, sticky="w")
 
-        # Hàng 2: Boss Sáng
-        self.chk_C1 = ctk.CTkCheckBox(self.card_C, text="Boss Sáng", variable=self.var_C1, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#D97706", hover_color="#B45309", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
+        # Hàng 2: Boss (Gộp Boss Sáng & Boss Trưa)
+        self.chk_C1 = ctk.CTkCheckBox(self.card_C, text="Boss", variable=self.var_C1, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#D97706", hover_color="#B45309", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
         self.chk_C1.grid(row=2, column=0, padx=12, pady=1, sticky="w")
 
-        # Hàng 3: Boss Trưa
-        self.chk_C2 = ctk.CTkCheckBox(self.card_C, text="Boss Trưa", variable=self.var_C2, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#D97706", hover_color="#B45309", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
-        self.chk_C2.grid(row=3, column=0, padx=12, pady=1, sticky="w")
-
-        # Hàng 4: Vé + Menu thả xuất số thứ tự 1,2,3,4,5
+        # Hàng 3: Vé + Menu thả xuất số thứ tự 1,2,3,4,5
         row_C_ve = ctk.CTkFrame(self.card_C, fg_color="transparent")
-        row_C_ve.grid(row=4, column=0, padx=12, pady=(0, 6), sticky="w")
+        row_C_ve.grid(row=3, column=0, padx=12, pady=(0, 6), sticky="w")
 
         self.chk_C3 = ctk.CTkCheckBox(
             row_C_ve, text="Vé", variable=self.var_C3, command=self._on_checkbox_toggled,
@@ -1390,8 +1346,8 @@ class ToolLDPlayerGUI(ctk.CTk):
                     self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell monkey -p {fb_pkg} -c android.intent.category.LAUNCHER 1"])
 
             # 4. Kích hoạt "Mắt Thần" OpenCV quét nhận biết Bảng Chọn Máy Chủ qua ảnh mẫu 'login_server.png' / 'login_redorb.png'
-            self.after(0, self.log_info, "⏳ [Bước 4/4] Hoãn 20 giây trước khi Mắt Thần OpenCV quét Bảng Máy Chủ...")
-            time.sleep(20.0)
+            self.after(0, self.log_info, "⏳ [Bước 4/4] Hoãn 30 giây trước khi Mắt Thần OpenCV quét Bảng Máy Chủ...")
+            time.sleep(30.0)
             self.after(0, self.log_info, "👁️ [Bước 4/4] Mắt thần OpenCV đang quét theo dõi màn hình Chọn Máy Chủ TS Origin...")
             
             icon_server_detected = False
@@ -1530,20 +1486,54 @@ class ToolLDPlayerGUI(ctk.CTk):
                 msg = f"❌ Đã cuộn 20 lần (10 xuống, 10 lên) nhưng máy chủ '{server_name}' vẫn báo 'login_nkn.png' không vào được. Đã dừng lại!"
                 self.after(0, self._finish_launch_ts_origin, False, msg)
             else:
-                msg = f"🚀 👁️ Đã chọn Máy chủ '{server_name}' & Đăng nhập thành công trên Tab: {tab_name} (Index: {tab_index})"
+                self.after(0, self.log_info, f"🚀 👁️ Đã chọn Máy chủ '{server_name}' trên Tab: {tab_name} (Index: {tab_index})")
+                
+                # 📌 Bước 5: Hoãn 3 giây khi vào màn hình game
+                self.after(0, self.log_info, "⏳ [Màn hình game] Hoãn 3 giây trước khi quét giao diện...")
+                time.sleep(3.0)
+
+                if self.stop_requested:
+                    self.stop_requested = False
+                    self.after(0, self._finish_launch_ts_origin, False, "🛑 Tiến trình đã dừng theo yêu cầu!")
+                    return
+
+                # 📌 Bước 6: Quét Mắt Thần OpenCV & Click nút 'login_x.png' (Nếu khớp nhấp click, không khớp chuyển bước 7)
+                self.after(0, self.log_info, "👁️ [Bước 6] Mắt thần đang quét tìm nút 'login_x.png'...")
+                x_x, x_y = self._find_template_on_screen(dnconsole_path, tab_index, "login_x.png", threshold=0.75)
+                if x_x is not None and x_y is not None:
+                    self.after(0, self.log_info, f"🎯 Mắt thần đã tìm thấy 'login_x.png' tại ({x_x}, {x_y})! Đang nhấp chọn...")
+                    self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {x_x} {x_y}"])
+                    time.sleep(1.0)
+                else:
+                    self.after(0, self.log_info, "ℹ️ Không phát hiện nút 'login_x.png' -> Chuyển xuống Bước 7.")
+
+                if self.stop_requested:
+                    self.stop_requested = False
+                    self.after(0, self._finish_launch_ts_origin, False, "🛑 Tiến trình đã dừng theo yêu cầu!")
+                    return
+
+                # 📌 Bước 7: Quét Mắt Thần OpenCV & Click nút 'login_auto.png'
+                self.after(0, self.log_info, "👁️ [Bước 7] Mắt thần đang quét tìm nút 'login_auto.png'...")
+                auto_x, auto_y = self._find_template_on_screen(dnconsole_path, tab_index, "login_auto.png", threshold=0.75)
+                if auto_x is not None and auto_y is not None:
+                    self.after(0, self.log_info, f"🎯 Mắt thần đã tìm thấy 'login_auto.png' tại ({auto_x}, {auto_y})! Đang nhấp chọn...")
+                    self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {auto_x} {auto_y}"])
+                    time.sleep(1.0)
+                else:
+                    self.after(0, self.log_info, "ℹ️ Không tìm thấy ảnh 'login_auto.png' trên màn hình game.")
+
+                # 📌 Bước 8: Hoàn tất quá trình mở game & trả lại trạng thái nút bấm
+                msg = f"✅ [Hoàn thành] Đã vào game & hoàn tất quy trình khởi chạy trên Tab: {tab_name} (Index: {tab_index})"
                 self.after(0, self._finish_launch_ts_origin, True, msg)
 
         except Exception as e:
             self.after(0, self._finish_launch_ts_origin, False, f"Lỗi khởi chạy game: {str(e)}")
 
     def _finish_launch_ts_origin(self, success: bool, message: str):
-        """Hoàn tất quá trình mở game, trả lại trạng thái nút bấm và kích hoạt luồng hoạt động tuần tự"""
+        """Hoàn tất quá trình mở game, trả lại trạng thái nút bấm TS Origin"""
         self.btn_enter_game.configure(state="normal", text="TS Origin")
         if success:
             self.log_info(message)
-            tab_name, tab_index = self._get_selected_ld_info()
-            if tab_index is not None:
-                self._run_sequential_pipeline_async(tab_name, tab_index)
         else:
             self.log_error(message)
 
@@ -1602,15 +1592,119 @@ class ToolLDPlayerGUI(ctk.CTk):
         except Exception as e:
             self.after(0, self.log_error, f"❌ Lỗi luồng hoạt động tuần tự: {str(e)}")
 
+    # ---- HÀM XỬ LÝ NÚT CHẠY (THỰC THI 3 CARD THEO THỨ TỰ: 1. PHỤ BẢN ĐƠN/ĐỘI -> 2. BOSS TG -> 3. DỊ GIỚI) ----
+    def xu_ly_nut_chay(self):
+        """Khi bấm nút Chạy: Thực thi các ô check trong 3 Card (Phụ Bản Đơn/Đội, Boss TG, Dị Giới) nếu công tắc đang ON"""
+        tab_name, tab_index = self._get_selected_ld_info()
+        if tab_index is None:
+            self.log_error("Vui lòng chọn một Tab LDPlayer trước khi bấm Chạy!")
+            return
+
+        has_active_switch = self.var_switch_E.get() or self.var_switch_C.get() or self.var_switch_B.get()
+        if not has_active_switch:
+            self.log_error("Vui lòng bật công tắc ON cho ít nhất 1 trong 3 Card (Phụ Bản Đơn/Đội, Boss TG, Dị Giới) trước khi bấm Chạy!")
+            return
+
+        self.stop_requested = False
+        self.btn_run.configure(state="disabled", text="Đang chạy...")
+        self.log_info(f"▶️ [NÚT CHẠY] Bắt đầu thực thi các Card đang bật ON theo thứ tự trên Tab: {tab_name} (Index: {tab_index})...")
+
+        threading.Thread(target=self._worker_run_3_cards, args=(tab_name, tab_index), daemon=True).start()
+
+    def _worker_run_3_cards(self, tab_name: str, tab_index: str):
+        """Worker thread thực thi thứ tự 3 Card: 1. Phụ Bản Đơn/Đội -> 2. Boss Thế Giới -> 3. Dị Giới"""
+        try:
+            dnconsole_path = os.path.join(self.ld_path, "dnconsole.exe")
+            if not os.path.exists(dnconsole_path):
+                dnconsole_path = os.path.join(self.ld_path, "ldconsole.exe")
+
+            if not os.path.exists(dnconsole_path):
+                self.after(0, self._finish_run_3_cards, False, f"Không tìm thấy ldconsole/dnconsole tại: {self.ld_path}")
+                return
+
+            # 📌 1/3: CARD PHỤ BẢN ĐƠN / ĐỘI (Card E)
+            if self.var_switch_E.get() and not self.stop_requested:
+                self.after(0, self.log_info, f"📌 [1/3] Đang thực thi Card Phụ Bản Đơn / Đội trên Tab: {tab_name}...")
+                self._execute_card_E_phu_ban_doi(dnconsole_path, tab_name, tab_index)
+                
+                if not self.stop_requested:
+                    if not self.var_switch_E.get():
+                        self.after(0, self.log_info, "🛑 [1/3] Công tắc Card Phụ Bản Đơn / Đội gạt về OFF ➔ Đã dừng thao tác Card này!")
+                    else:
+                        # Thao tác xong các ô check -> Tự động nhả công tắc E về OFF
+                        self.var_switch_E.set(False)
+                        self.after(0, self._update_card_G_visibility)
+                        self.after(0, self.save_config)
+                        self.after(0, self.log_info, "✅ [1/3] Đã hoàn thành Card Phụ Bản Đơn / Đội ➔ Tự động nhả công tắc E về OFF!")
+
+                    # Nếu có Card tiếp theo đang mở công tắc -> Hoãn 5 giây trước khi chuyển sang Card tiếp theo
+                    if (self.var_switch_C.get() or self.var_switch_B.get()) and not self.stop_requested:
+                        self.after(0, self.log_info, "⏳ Hoãn 5 giây trước khi chuyển sang Card tiếp theo...")
+                        time.sleep(5.0)
+
+            # 📌 2/3: CARD BOSS THẾ GIỚI (Card C)
+            if self.var_switch_C.get() and not self.stop_requested:
+                self.after(0, self.log_info, f"📌 [2/3] Đang thực thi Card Boss Thế Giới trên Tab: {tab_name}...")
+                self._execute_card_C_boss_tg(dnconsole_path, tab_name, tab_index)
+                
+                if not self.stop_requested:
+                    if not self.var_switch_C.get():
+                        self.after(0, self.log_info, "🛑 [2/3] Công tắc Card Boss Thế Giới gạt về OFF ➔ Đã dừng thao tác Card này!")
+                    else:
+                        # Thao tác xong các ô check -> Tự động nhả công tắc C về OFF
+                        self.var_switch_C.set(False)
+                        self.after(0, self.save_config)
+                        self.after(0, self.log_info, "✅ [2/3] Đã hoàn thành Card Boss Thế Giới ➔ Tự động nhả công tắc C về OFF!")
+
+                    # Nếu có Card tiếp theo đang mở công tắc -> Hoãn 5 giây trước khi chuyển sang Card tiếp theo
+                    if self.var_switch_B.get() and not self.stop_requested:
+                        self.after(0, self.log_info, "⏳ Hoãn 5 giây trước khi chuyển sang Card tiếp theo...")
+                        time.sleep(5.0)
+
+            # 📌 3/3: CARD DỊ GIỚI (Card B)
+            if self.var_switch_B.get() and not self.stop_requested:
+                self.after(0, self.log_info, f"📌 [3/3] Đang thực thi Card Dị Giới trên Tab: {tab_name}...")
+                self._execute_card_B_di_gioi(dnconsole_path, tab_name, tab_index)
+                
+                if not self.stop_requested:
+                    if not self.var_switch_B.get():
+                        self.after(0, self.log_info, "🛑 [3/3] Công tắc Card Dị Giới Đêm gạt về OFF ➔ Đã dừng thao tác Card này!")
+                    else:
+                        # Thao tác xong các ô check -> Tự động nhả công tắc B về OFF
+                        self.var_switch_B.set(False)
+                        self.after(0, self.save_config)
+                        self.after(0, self.log_info, "✅ [3/3] Đã hoàn thành Card Dị Giới ➔ Tự động nhả công tắc B về OFF!")
+
+            if self.stop_requested:
+                self.after(0, self._finish_run_3_cards, False, "🛑 Tiến trình Nút Chạy đã dừng theo yêu cầu!")
+            else:
+                self.after(0, self._finish_run_3_cards, True, f"🎉 [HOÀN THÀNH] Nút Chạy đã hoàn tất các Card hoạt động theo thứ tự trên Tab: {tab_name}")
+
+        except Exception as e:
+            self.after(0, self._finish_run_3_cards, False, f"Lỗi tiến trình Nút Chạy: {str(e)}")
+
+    def _finish_run_3_cards(self, success: bool, message: str):
+        """Hoàn tất tiến trình nút Chạy, phục hồi nút Chạy sáng lên"""
+        if hasattr(self, 'btn_run'):
+            self.btn_run.configure(state="normal", text="Chạy")
+        if success:
+            self.log_info(message)
+        else:
+            self.log_error(message)
+
     def dung_tat_ca_hoat_dong(self):
-        """Nút Dừng ở hàng KHỞI ĐỘNG & SERVER: Dừng toàn bộ 6 card hoạt động và chuyển 6 công tắc về OFF"""
+        """Nút Dừng ở hàng KHỞI ĐỘNG & SERVER: Dừng toàn bộ các card hoạt động, dừng nút Chạy và chuyển các công tắc về OFF"""
         self.stop_requested = True
         for prefix in ["B", "C", "D", "E", "F", "G"]:
             switch_attr = f"var_switch_{prefix}"
             if hasattr(self, switch_attr):
                 getattr(self, switch_attr).set(False)
         self.save_config()
-        self.after(0, self.log_info, "🛑 [DỪNG KHẨN CẤP] Đã bấm nút Dừng ➔ Dừng toàn bộ 6 card hoạt động và trả các công tắc về OFF!")
+        if hasattr(self, 'btn_run'):
+            self.btn_run.configure(state="normal", text="Chạy")
+        if hasattr(self, 'btn_enter_game'):
+            self.btn_enter_game.configure(state="normal", text="TS Origin")
+        self.after(0, self.log_info, "🛑 [DỪNG KHẨN CẤP] Đã bấm nút Dừng ➔ Dừng nút Chạy, ngắt mọi tiến trình và trả các công tắc về OFF!")
 
     def _should_stop_di_gioi(self) -> bool:
         """Kiểm tra điều kiện dừng cho Card 1 Dị Giới (bấm Dừng tổng hoặc gạt công tắc B về OFF)"""
@@ -1941,85 +2035,6 @@ class ToolLDPlayerGUI(ctk.CTk):
             self.after(0, self.log_info, "7. Hoàn thành thao tác Ký Lục (giữ nguyên ô tích).")
 
         # Ô Rút Gọn:
-        if self._should_stop_di_gioi(): return
-        self.after(0, self.log_info, f"▶️ [RÚT GỌN] Kiểm tra ô Rút Gọn (Trạng thái: {'ĐƯỢC TÍCH' if has_rut_gon else 'KHÔNG TÍCH'})...")
-        ai_x, ai_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_ai.png", threshold=0.85)
-        if ai_x is not None and ai_y is not None:
-            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện nút 'a_ai.png' tại ({ai_x}, {ai_y})! Nhấp chọn ngay...")
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {ai_x} {ai_y}"])
-            time.sleep(1.0)
-        else:
-            self.after(0, self.log_info, f"1. Click mở lại bảng menu tại ({px_x}, {px_y})...")
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {px_x} {px_y}"])
-            time.sleep(1.2)
-            if self._should_stop_di_gioi(): return
-            ai_x, ai_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_ai.png", threshold=0.85)
-            if ai_x is not None and ai_y is not None:
-                self.after(0, self.log_info, f"🎯 Mắt thần phát hiện nút 'a_ai.png' tại ({ai_x}, {ai_y})! Đang nhấp chọn...")
-                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {ai_x} {ai_y}"])
-                time.sleep(1.0)
-
-        self.after(0, self.log_info, f"3. Click tiếp vào tọa độ ({c_x}, {c_y})...")
-        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {c_x} {c_y}"])
-        time.sleep(1.0)
-
-        self.after(0, self.log_info, "4. Quét kiểm tra ảnh mẫu 'a_rutgon.png' (ngưỡng 95%)...")
-        rg_x, rg_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_rutgon.png", threshold=0.95)
-        if has_rut_gon:
-            if rg_x is not None and rg_y is not None:
-                self.after(0, self.log_info, f"🎯 [BẬT] Giao diện ĐÃ KHỚP ảnh mẫu 'a_rutgon.png' ➔ Click vào ({rg_tap_x}, {rg_tap_y}) để Bật Rút Gọn...")
-                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {rg_tap_x} {rg_tap_y}"])
-                time.sleep(1.0)
-            else:
-                self.after(0, self.log_info, "ℹ️ [BẬT] Giao diện KHÔNG KHỚP ảnh mẫu 'a_rutgon.png' (Đã Bật sẵn) ➔ Bỏ qua.")
-        else:
-            if rg_x is not None and rg_y is not None:
-                self.after(0, self.log_info, "ℹ️ [TẮT] Giao diện ĐÃ KHỚP ảnh mẫu 'a_rutgon.png' (Đã Tắt sẵn) ➔ Bỏ qua để Tắt Rút Gọn.")
-            else:
-                self.after(0, self.log_info, f"🎯 [TẮT] Giao diện KHÔNG KHỚP ảnh mẫu 'a_rutgon.png' ➔ Click vào ({rg_tap_x}, {rg_tap_y}) để Tắt Rút Gọn...")
-                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {rg_tap_x} {rg_tap_y}"])
-                time.sleep(1.0)
-
-        self.after(0, self.log_info, f"5. Click vào tọa độ ({end_x}, {end_y})...")
-        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {end_x} {end_y}"])
-        time.sleep(1.0)
-
-        self.after(0, self.log_info, f"6. Click lại nút xanh lá ({px_x}, {px_y}) để thu gọn menu...")
-        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {px_x} {px_y}"])
-        time.sleep(1.0)
-
-        if has_rut_gon:
-            self.after(0, self.log_info, "7. Hoàn thành thao tác Rút Gọn (giữ nguyên ô tích).")
-
-        # =========================================================================
-        # 📌 6. BẬT AI TIM DỊ GIỚI ĐÊM (a_aitim.png)
-        # =========================================================================
-        if self._should_stop_di_gioi(): return
-        self.after(0, self.log_info, "👁️ [DỊ GIỚI - Bước 6] Quét tìm biểu tượng 'a_aitim.png' (độ chính xác 85%)...")
-        aitim_x, aitim_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_aitim.png", threshold=0.85)
-        if aitim_x is not None and aitim_y is not None:
-            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'a_aitim.png' tại ({aitim_x}, {aitim_y})! Nhấp chọn ngay...")
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {aitim_x} {aitim_y}"])
-            time.sleep(1.0)
-        else:
-            self.after(0, self.log_info, f"👉 Chưa thấy 'a_aitim.png' ➔ Click nút xanh lá ({px_x}, {px_y}) để mở menu...")
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {px_x} {px_y}"])
-            time.sleep(1.2)
-            if self._should_stop_di_gioi(): return
-            aitim_x, aitim_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_aitim.png", threshold=0.85)
-            if aitim_x is not None and aitim_y is not None:
-                self.after(0, self.log_info, f"🎯 Phát hiện nút 'a_aitim.png' tại ({aitim_x}, {aitim_y})! Nhấp chọn...")
-                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {aitim_x} {aitim_y}"])
-                time.sleep(1.0)
-            else:
-                self.after(0, self.log_info, "⚠️ Chưa quét thấy biểu tượng 'a_aitim.png' trong bảng menu.")
-
-        # =========================================================================
-        # 📌 7. HOÀN TẤT CARD DỊ GIỚI
-        # =========================================================================
-        self.var_switch_B.set(False)
-        self.after(0, self.save_config)
-        self.after(0, self.log_info, "✅ [1/6: DỊ GIỚI] Đã hoàn thành toàn bộ quy trình Card Dị Giới!")
 
     def _execute_card_E_phu_ban_doi(self, dnconsole_path: str, tab_name: str, tab_index: str):
         """Thực thi Card 2: PHỤ BẢN ĐƠN / ĐỘI (E)"""
@@ -2046,11 +2061,22 @@ class ToolLDPlayerGUI(ctk.CTk):
         # =========================================================================
         # 📌 VỀ KHU AN TOÀN (SAFE ZONE RETURN)
         # =========================================================================
+        # 1. Quét tìm nút Vị Trí (a_vitri.png):
+        # Mắt Thần quét ảnh nút login_x.png, nếu thấy sẽ nhấp chọn để đóng bảng quảng cáo/thông báo
+        if self._should_stop_card_E(): return
+        self.after(0, self.log_info, "👁️ Quét tìm nút 'login_x.png' để đóng bảng quảng cáo/thông báo...")
+        lx_x, lx_y = self._find_template_on_screen(dnconsole_path, tab_index, "login_x.png", threshold=0.75)
+        if lx_x is not None and lx_y is not None:
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'login_x.png' tại ({lx_x}, {lx_y})! Click chọn để đóng quảng cáo/thông báo...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {lx_x} {lx_y}"])
+            time.sleep(1.0)
+
+        # Quét Mắt Thần OpenCV tìm a_vitri.png (độ chính xác 85%)
         if self._should_stop_card_E(): return
         self.after(0, self.log_info, "👁️ [Phụ Bản - Về Khu An Toàn] Quét tìm nút Vị Trí 'a_vitri.png' (85%)...")
         v_x, v_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_vitri.png", threshold=0.85)
         if v_x is not None and v_y is not None:
-            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'a_vitri.png' tại ({v_x}, {v_y})! Click chọn...")
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'a_vitri.png' tại ({v_x}, {v_y})! Tap click trực tiếp...")
             self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {v_x} {v_y}"])
             time.sleep(1.0)
         else:
@@ -2060,7 +2086,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             if self._should_stop_card_E(): return
             v_x, v_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_vitri.png", threshold=0.85)
             if v_x is not None and v_y is not None:
-                self.after(0, self.log_info, f"🎯 Phát hiện nút 'a_vitri.png' tại ({v_x}, {v_y})! Click chọn...")
+                self.after(0, self.log_info, f"🎯 Phát hiện nút 'a_vitri.png' tại ({v_x}, {v_y})! Tap click trực tiếp...")
                 self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {v_x} {v_y}"])
                 time.sleep(1.0)
             else:
@@ -2089,7 +2115,11 @@ class ToolLDPlayerGUI(ctk.CTk):
                 self.after(0, self.log_info, "ℹ️ Không còn thấy ảnh nút Có 'card_c/c_co.png' ➔ Hoàn thành Về Khu An Toàn!")
                 break
 
-        # Quét Mắt Thần nút a_vitri.png (85%): Nhấp menu 1213, 648 nếu thấy, bỏ qua nếu không thấy
+        # Quét Mắt Thần nút a_vitri.png (85%): Hoãn 3 giây trước khi kiểm tra lại
+        if self._should_stop_card_E(): return
+        self.after(0, self.log_info, "⏳ [Về Khu An Toàn] Hoãn 3 giây trước khi quét kiểm tra lại nút 'a_vitri.png'...")
+        time.sleep(3.0)
+
         if self._should_stop_card_E(): return
         self.after(0, self.log_info, "👁️ Quét Mắt Thần kiểm tra nút 'a_vitri.png' (85%)...")
         v_check_x, v_check_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_vitri.png", threshold=0.85)
@@ -2102,34 +2132,37 @@ class ToolLDPlayerGUI(ctk.CTk):
 
         # ---------------- 1. XỬ LÝ MỤC PHỤ BẢN ĐƠN (CÁ NHÂN) ----------------
         if don_active:
-            if self.stop_requested: return
+            if self._should_stop_card_E(): return
             selected_char_don = self.combo_E_don_char.get() if hasattr(self, 'combo_E_don_char') else "Xuất Chiến"
             self.after(0, self.log_info, f"⚙️ [Phụ Bản Đơn] Bắt đầu quy trình ô Cá Nhân - Vị trí: '{selected_char_don}'...")
             time.sleep(0.8)
 
-            # --- Bước 1: Tìm ảnh b_doi.png (trong folder card_b) ---
-            if self.stop_requested: return
-            self.after(0, self.log_info, "👁️ [Phụ Bản Đơn - Bước 1] Quét tìm ảnh 'b_doi.png' trong folder 'card_b'...")
-            b_doi_x, b_doi_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_doi.png", threshold=0.85)
-            if b_doi_x is not None and b_doi_y is not None:
-                self.after(0, self.log_info, f"🎯 Phát hiện ảnh 'b_doi.png' tại ({b_doi_x}, {b_doi_y})! Click vào ảnh...")
-                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {b_doi_x} {b_doi_y}"])
-                time.sleep(1.0)
-            else:
-                self.after(0, self.log_info, "👉 Chưa thấy 'b_doi.png' ➔ Click nút xanh lá góc dưới phải (1213, 648) mở menu...")
-                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1213 648"])
-                time.sleep(1.2)
-                if self.stop_requested: return
+            # --- Bước 1: Tìm ảnh b_doi.png (Nếu 'Xuất Chiến' được chọn -> BỎ QUA Bước 1) ---
+            if selected_char_don != "Xuất Chiến":
+                if self._should_stop_card_E(): return
+                self.after(0, self.log_info, "👁️ [Phụ Bản Đơn - Bước 1] Quét tìm ảnh 'b_doi.png' trong folder 'card_b'...")
                 b_doi_x, b_doi_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_doi.png", threshold=0.85)
                 if b_doi_x is not None and b_doi_y is not None:
                     self.after(0, self.log_info, f"🎯 Phát hiện ảnh 'b_doi.png' tại ({b_doi_x}, {b_doi_y})! Click vào ảnh...")
                     self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {b_doi_x} {b_doi_y}"])
                     time.sleep(1.0)
                 else:
-                    self.after(0, self.log_info, "⚠️ Chưa quét thấy biểu tượng 'b_doi.png' trong bảng menu.")
+                    self.after(0, self.log_info, "👉 Chưa thấy 'b_doi.png' ➔ Click nút xanh lá góc dưới phải (1213, 648) mở menu...")
+                    self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1213 648"])
+                    time.sleep(1.2)
+                    if self._should_stop_card_E(): return
+                    b_doi_x, b_doi_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_doi.png", threshold=0.85)
+                    if b_doi_x is not None and b_doi_y is not None:
+                        self.after(0, self.log_info, f"🎯 Phát hiện ảnh 'b_doi.png' tại ({b_doi_x}, {b_doi_y})! Click vào ảnh...")
+                        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {b_doi_x} {b_doi_y}"])
+                        time.sleep(1.0)
+                    else:
+                        self.after(0, self.log_info, "⚠️ Chưa quét thấy biểu tượng 'b_doi.png' trong bảng menu.")
+            else:
+                self.after(0, self.log_info, "ℹ️ Vị trí 'Xuất Chiến' được chọn ➔ Bỏ qua Bước 1 (không click 'b_doi.png').")
 
             # --- Bước 2: Thao tác theo từng vị trí trong Menu thả xuống ---
-            if self.stop_requested: return
+            if self._should_stop_card_E(): return
             self.after(0, self.log_info, f"⚙️ [Phụ Bản Đơn - Bước 2] Chế độ vị trí chọn: '{selected_char_don}'")
             if selected_char_don == "Xuất Chiến":
                 self.after(0, self.log_info, "ℹ️ Vị trí 'Xuất Chiến': Không có hành động ở Bước 2, chuyển tiếp xuống Bước 3.")
@@ -2167,7 +2200,7 @@ class ToolLDPlayerGUI(ctk.CTk):
                 time.sleep(0.8)
 
             # --- Bước 3: Tìm ảnh b_pb.png (trong folder card_b) & click tọa độ ---
-            if self.stop_requested: return
+            if self._should_stop_card_E(): return
             self.after(0, self.log_info, "👁️ [Phụ Bản Đơn - Bước 3] Quét tìm ảnh 'b_pb.png' trong folder 'card_b'...")
             b_pb_x, b_pb_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_pb.png", threshold=0.85)
             if b_pb_x is not None and b_pb_y is not None:
@@ -2178,7 +2211,7 @@ class ToolLDPlayerGUI(ctk.CTk):
                 self.after(0, self.log_info, "👉 Chưa thấy 'b_pb.png' ➔ Click nút xanh lá góc dưới phải (1213, 648) mở menu...")
                 self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1213 648"])
                 time.sleep(1.2)
-                if self.stop_requested: return
+                if self._should_stop_card_E(): return
                 b_pb_x, b_pb_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_pb.png", threshold=0.85)
                 if b_pb_x is not None and b_pb_y is not None:
                     self.after(0, self.log_info, f"🎯 Phát hiện ảnh 'b_pb.png' tại ({b_pb_x}, {b_pb_y})! Click vào ảnh...")
@@ -2188,7 +2221,7 @@ class ToolLDPlayerGUI(ctk.CTk):
                     self.after(0, self.log_info, "⚠️ Chưa quét thấy biểu tượng 'b_pb.png' trong bảng menu.")
 
             # --- Quét card_b/b_lsknn.png khi hoàn thành các thao tác Quét card_b/b_pb.png ---
-            if self.stop_requested: return
+            if self._should_stop_card_E(): return
             self.after(0, self.log_info, "👁️ [Phụ Bản Đơn - Bước 3] Quét kiểm tra ảnh 'card_b/b_lsknn.png'...")
             lsknn_x, lsknn_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_lsknn.png", threshold=0.85)
             if lsknn_x is not None and lsknn_y is not None:
@@ -2198,47 +2231,47 @@ class ToolLDPlayerGUI(ctk.CTk):
             else:
                 self.after(0, self.log_info, "ℹ️ Không khớp ảnh 'b_lsknn.png' ➔ Bỏ qua.")
 
-            if self.stop_requested: return
+            if self._should_stop_card_E(): return
             self.after(0, self.log_info, "👉 Click tọa độ (240, 500)...")
             self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 240 500"])
             time.sleep(0.8)
 
-            if self.stop_requested: return
+            if self._should_stop_card_E(): return
             self.after(0, self.log_info, "👉 Click tiếp tọa độ (775, 575)...")
             self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 775 575"])
             time.sleep(0.8)
 
-            # --- Quét nhận diện Xác Nhận: card_b/b_xn.png (Chờ 3s & Quét liên tục tới khi thấy) ---
-            if self.stop_requested: return
-            self.after(0, self.log_info, "⏳ [Phụ Bản Đơn - Bước 3] Chờ 3 giây trước khi quét tìm nút Xác Nhận...")
-            for _ in range(3):
-                if self.stop_requested: return
+            # --- Quét nhận diện Xác Nhận: card_b/b_xn.png (Chờ 5s & Quét liên tục tới khi thấy) ---
+            if self._should_stop_card_E(): return
+            self.after(0, self.log_info, "⏳ [Phụ Bản Đơn - Bước 3] Chờ 5 giây trước khi quét tìm nút Xác Nhận...")
+            for _ in range(5):
+                if self._should_stop_card_E(): return
                 time.sleep(1.0)
 
             self.after(0, self.log_info, "👁️ [Phụ Bản Đơn - Bước 3] Quét tìm ảnh mẫu 'card_b/b_xn.png' (Lặp lại cho tới khi phát hiện)...")
             xn_x, xn_y = None, None
-            while not self.stop_requested:
+            while not self._should_stop_card_E():
                 xn_x, xn_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_xn.png", threshold=0.85)
                 if xn_x is not None and xn_y is not None:
                     break
                 self.after(0, self.log_info, "⏳ Chưa phát hiện 'card_b/b_xn.png' ➔ Tiếp tục quét lại sau 1.5s...")
                 time.sleep(1.5)
 
-            if self.stop_requested: return
+            if self._should_stop_card_E(): return
 
             if xn_x is not None and xn_y is not None:
-                self.after(0, self.log_info, f"🎯 Phát hiện ảnh 'b_xn.png' tại ({xn_x}, {xn_y}) ➔ Click 2 lần (cách nhau 0.8s) vào ảnh 'b_xn.png'...")
+                self.after(0, self.log_info, f"🎯 Phát hiện ảnh 'b_xn.png' tại ({xn_x}, {xn_y}) ➔ Click 2 lần (cách nhau 0.8s) vào ảnh 'b_xn.png' ➔ Tạm dừng 3.0s...")
                 self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {xn_x} {xn_y}"])
                 time.sleep(0.8)
                 self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {xn_x} {xn_y}"])
-                time.sleep(0.8)
+                time.sleep(3.0)
 
             # --- Bước 4: Quy trình Bước 4 (Bỏ 4.1 và 4.2) ---
-            if self.stop_requested: return
+            if self._should_stop_card_E(): return
             self.after(0, self.log_info, "🚀 [Phụ Bản Đơn - Bước 4] Khởi chạy Bước 4...")
 
             # 4.3: Quét nhận diện Phụ Bản & Vào màn
-            if self.stop_requested: return
+            if self._should_stop_card_E(): return
             self.after(0, self.log_info, "👁️ [Phụ Bản Đơn - Bước 4.3] Quét tìm ảnh 'b_pb.png'...")
             b_pb_x4, b_pb_y4 = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_pb.png", threshold=0.85)
             if b_pb_x4 is not None and b_pb_y4 is not None:
@@ -2249,7 +2282,7 @@ class ToolLDPlayerGUI(ctk.CTk):
                 self.after(0, self.log_info, "👉 Chưa thấy 'b_pb.png' ➔ Click nút xanh lá góc dưới phải (1213, 648) mở menu...")
                 self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1213 648"])
                 time.sleep(1.2)
-                if self.stop_requested: return
+                if self._should_stop_card_E(): return
                 b_pb_x4, b_pb_y4 = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_pb.png", threshold=0.85)
                 if b_pb_x4 is not None and b_pb_y4 is not None:
                     self.after(0, self.log_info, f"🎯 Phát hiện ảnh 'b_pb.png' tại ({b_pb_x4}, {b_pb_y4})! Click vào ảnh...")
@@ -2258,40 +2291,40 @@ class ToolLDPlayerGUI(ctk.CTk):
                 else:
                     self.after(0, self.log_info, "⚠️ Chưa quét thấy biểu tượng 'b_pb.png' trong bảng menu.")
 
-            if self.stop_requested: return
+            if self._should_stop_card_E(): return
             self.after(0, self.log_info, "👉 Click tiếp tọa độ (240, 500)...")
             self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 240 500"])
             time.sleep(0.8)
 
-            if self.stop_requested: return
+            if self._should_stop_card_E(): return
             self.after(0, self.log_info, "👉 Click tiếp tọa độ (640, 575)...")
             self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 640 575"])
             time.sleep(0.8)
 
-            if self.stop_requested: return
+            if self._should_stop_card_E(): return
             self.after(0, self.log_info, "👉 Click nút thực thi tại tọa độ (775, 575)...")
             self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 775 575"])
             time.sleep(0.8)
 
             # 4.4: Chờ 5 giây (có kiểm tra trạng thái dừng)
-            if self.stop_requested: return
+            if self._should_stop_card_E(): return
             self.after(0, self.log_info, "⏳ [Phụ Bản Đơn - Bước 4.4] Chờ 5 giây nạp trận đánh...")
             for _ in range(5):
-                if self.stop_requested: return
+                if self._should_stop_card_E(): return
                 time.sleep(1.0)
 
             # 4.5: Vòng lặp quét liên tục ảnh card_b/b_xn.png cho tới khi tìm thấy (mỗi 1.5s)
-            if self.stop_requested: return
+            if self._should_stop_card_E(): return
             self.after(0, self.log_info, "👁️ [Phụ Bản Đơn - Bước 4.5] Quét tìm ảnh mẫu 'card_b/b_xn.png' (mỗi 1.5s)...")
             xn_x4, xn_y4 = None, None
-            while not self.stop_requested:
+            while not self._should_stop_card_E():
                 xn_x4, xn_y4 = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_xn.png", threshold=0.85)
                 if xn_x4 is not None and xn_y4 is not None:
                     break
                 self.after(0, self.log_info, "⏳ Chưa phát hiện 'card_b/b_xn.png' ➔ Tiếp tục quét lại sau 1.5s...")
                 time.sleep(1.5)
 
-            if self.stop_requested: return
+            if self._should_stop_card_E(): return
 
             if xn_x4 is not None and xn_y4 is not None:
                 self.after(0, self.log_info, f"🎯 Phát hiện ảnh 'b_xn.png' tại ({xn_x4}, {xn_y4}) ➔ Click 2 lần (cách nhau 0.5s) vào ảnh 'b_xn.png'...")
@@ -2300,48 +2333,51 @@ class ToolLDPlayerGUI(ctk.CTk):
                 self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {xn_x4} {xn_y4}"])
                 time.sleep(3.0)
         else:
-            self.after(0, self.log_info, "ℹ️ [Phụ Bản Đơn] Ô check 'Cá Nhân' KHÔNG ĐƯỢC TÍCH (OFF) -> Bỏ qua không chạy Phụ Bản Đơn.")
+            self.after(0, self.log_info, "ℹ️ [Phụ Bản Đơn] Ô check 'Đơn' KHÔNG ĐƯỢC TÍCH (OFF) -> Bỏ qua không chạy Phụ Bản Đơn.")
 
         # ---------------- 2. XỬ LÝ MỤC PHỤ BẢN ĐỘI (NẾU TÍCH Ô CÁ NHÂN) ----------------
         if self.var_E_canhan.get():
-            if self.stop_requested: return
+            if self._should_stop_card_E(): return
             selected_char_team = self.combo_E_team_char.get() if hasattr(self, 'combo_E_team_char') else "Xuất Chiến"
 
             dungeons_to_run = [
-                ("PB 20", self.var_E1, (240, 275)),
-                ("PB 50", self.var_E2, (240, 330)),
-                ("PB 80", self.var_E3, (240, 380)),
-                ("PB 110", self.var_E4, (240, 435))
+                ("PB 20", self.var_E1, (240, 275), 55, 225),
+                ("PB 50", self.var_E2, (240, 330), 85, 225),
+                ("PB 80", self.var_E3, (240, 380), 115, 250),
+                ("PB 110", self.var_E4, (240, 435), 265, 450)
             ]
 
-            any_pb_checked = any(var_pb.get() for _, var_pb, _ in dungeons_to_run)
+            any_pb_checked = any(var_pb.get() for _, var_pb, _, _, _ in dungeons_to_run)
 
             if any_pb_checked:
                 self.after(0, self.log_info, f"⚙️ [Phụ Bản Đội - Cá Nhân] Có ô PB được tích ➔ Bắt đầu Bước 1 & Bước 2 (Vị trí: '{selected_char_team}')...")
 
-                # --- Bước 1: Mở Menu & Quét chọn Đội ---
-                if self.stop_requested: return
-                self.after(0, self.log_info, "👁️ [Phụ Bản Đội - Bước 1] Quét tìm ảnh 'b_doi.png' trong folder 'card_b'...")
-                b_doi_x, b_doi_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_doi.png", threshold=0.85)
-                if b_doi_x is not None and b_doi_y is not None:
-                    self.after(0, self.log_info, f"🎯 Phát hiện 'b_doi.png' tại ({b_doi_x}, {b_doi_y})! Click vào ảnh...")
-                    self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {b_doi_x} {b_doi_y}"])
-                    time.sleep(1.0)
-                else:
-                    self.after(0, self.log_info, "👉 Chưa thấy 'b_doi.png' ➔ Click nút xanh lá góc dưới phải (1213, 648) mở menu...")
-                    self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1213 648"])
-                    time.sleep(1.2)
-                    if self.stop_requested: return
+                # --- Bước 1: Mở Menu & Quét chọn Đội (Nếu 'Xuất Chiến' được chọn -> BỎ QUA Bước 1) ---
+                if selected_char_team != "Xuất Chiến":
+                    if self._should_stop_card_E(): return
+                    self.after(0, self.log_info, "👁️ [Phụ Bản Đội - Bước 1] Quét tìm ảnh 'b_doi.png' trong folder 'card_b'...")
                     b_doi_x, b_doi_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_doi.png", threshold=0.85)
                     if b_doi_x is not None and b_doi_y is not None:
                         self.after(0, self.log_info, f"🎯 Phát hiện 'b_doi.png' tại ({b_doi_x}, {b_doi_y})! Click vào ảnh...")
                         self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {b_doi_x} {b_doi_y}"])
                         time.sleep(1.0)
                     else:
-                        self.after(0, self.log_info, "⚠️ Chưa quét thấy biểu tượng 'b_doi.png' trong bảng menu.")
+                        self.after(0, self.log_info, "👉 Chưa thấy 'b_doi.png' ➔ Click nút xanh lá góc dưới phải (1213, 648) mở menu...")
+                        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1213 648"])
+                        time.sleep(1.2)
+                        if self._should_stop_card_E(): return
+                        b_doi_x, b_doi_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_doi.png", threshold=0.85)
+                        if b_doi_x is not None and b_doi_y is not None:
+                            self.after(0, self.log_info, f"🎯 Phát hiện 'b_doi.png' tại ({b_doi_x}, {b_doi_y})! Click vào ảnh...")
+                            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {b_doi_x} {b_doi_y}"])
+                            time.sleep(1.0)
+                        else:
+                            self.after(0, self.log_info, "⚠️ Chưa quét thấy biểu tượng 'b_doi.png' trong bảng menu.")
+                else:
+                    self.after(0, self.log_info, "ℹ️ Vị trí 'Xuất Chiến' được chọn ➔ Bỏ qua Bước 1 (không click 'b_doi.png').")
 
                 # --- Bước 2: Chuyển đổi Vị Trí Nhân Vật ---
-                if self.stop_requested: return
+                if self._should_stop_card_E(): return
                 self.after(0, self.log_info, f"⚙️ [Phụ Bản Đội - Bước 2] Chế độ vị trí chọn: '{selected_char_team}'")
                 if selected_char_team == "Xuất Chiến":
                     self.after(0, self.log_info, "ℹ️ Vị trí 'Xuất Chiến': Không có hành động ở Bước 2, chuyển tiếp xuống Bước 3.")
@@ -2379,9 +2415,9 @@ class ToolLDPlayerGUI(ctk.CTk):
                     time.sleep(0.8)
 
                 # --- Bước 3: Mở Phụ Bản & Vào Phụ Bản cho từng ô tích PB ---
-                for pb_name, var_pb, (pb_x, pb_y) in dungeons_to_run:
+                for pb_name, var_pb, (pb_x, pb_y), delay_sec, total_clicks in dungeons_to_run:
                     if var_pb.get():
-                        if self.stop_requested: return
+                        if self._should_stop_card_E(): return
                         self.after(0, self.log_info, f"🚀 [Phụ Bản Đội - {pb_name}] Kích hoạt quy trình cho ô tích '{pb_name}'...")
 
                         # 1. Quét tìm card_b/b_pb.png
@@ -2394,7 +2430,7 @@ class ToolLDPlayerGUI(ctk.CTk):
                             self.after(0, self.log_info, "👉 Chưa thấy 'b_pb.png' ➔ Click nút xanh lá góc dưới phải (1213, 648) mở menu...")
                             self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1213 648"])
                             time.sleep(1.2)
-                            if self.stop_requested: return
+                            if self._should_stop_card_E(): return
                             b_pb_x, b_pb_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_pb.png", threshold=0.85)
                             if b_pb_x is not None and b_pb_y is not None:
                                 self.after(0, self.log_info, f"🎯 Phát hiện 'card_b/b_pb.png' tại ({b_pb_x}, {b_pb_y})! Click chọn...")
@@ -2403,117 +2439,74 @@ class ToolLDPlayerGUI(ctk.CTk):
                             else:
                                 self.after(0, self.log_info, "⚠️ Chưa quét thấy biểu tượng 'b_pb.png' trong bảng menu.")
 
-                        if self.stop_requested: return
-                        # 2. Click tọa độ chọn PB (240, pb_y) ➔ (735, 575)
+                        if self._should_stop_card_E(): return
+                        # 2. Click chọn PB (240, pb_y) ➔ (735, 575)
                         self.after(0, self.log_info, f"👉 Click chọn {pb_name} tại ({pb_x}, {pb_y}) ➔ Click (735, 575)...")
                         self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {pb_x} {pb_y}"])
                         time.sleep(0.8)
                         self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 735 575"])
                         time.sleep(0.8)
 
-                        if self.stop_requested: return
-                        # 3. Quét tìm card_b/b_matkhau.png (85%)
-                        self.after(0, self.log_info, "👁️ Quét tìm ảnh mẫu 'card_b/b_matkhau.png' (85%)...")
-                        mk_x, mk_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_matkhau.png", threshold=0.85)
-                        if mk_x is not None and mk_y is not None:
-                            self.after(0, self.log_info, f"🎯 Khớp ảnh 'b_matkhau.png' tại ({mk_x}, {mk_y}) ➔ Click chọn ảnh...")
-                            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {mk_x} {mk_y}"])
-                            time.sleep(0.8)
+                        # 4. Tạo phòng có Mật Khẩu (Toàn bộ thao tác này sẽ không hoạt động nếu tick ô "Tổ Đội")
+                        if not self.var_E_doi.get():
+                            if self._should_stop_card_E(): return
+                            self.after(0, self.log_info, "👁️ Quét tìm ảnh mẫu 'card_b/b_matkhau.png' (85%)...")
+                            mk_x, mk_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_matkhau.png", threshold=0.85)
+                            if mk_x is not None and mk_y is not None:
+                                self.after(0, self.log_info, f"🎯 Khớp ảnh 'b_matkhau.png' tại ({mk_x}, {mk_y}) ➔ Click chọn ảnh ➔ Click (640, 435) đồng ý khóa mật khẩu...")
+                                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {mk_x} {mk_y}"])
+                                time.sleep(0.8)
+                                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 640 435"])
+                                time.sleep(0.8)
+                            else:
+                                self.after(0, self.log_info, "ℹ️ Không khớp 'b_matkhau.png' ➔ Bỏ qua.")
                         else:
-                            self.after(0, self.log_info, "ℹ️ Không khớp 'b_matkhau.png' ➔ Bỏ qua.")
+                            self.after(0, self.log_info, "ℹ️ Ô 'Tổ Đội' được tích chọn ➔ Bỏ qua toàn bộ thao tác khóa mật khẩu.")
 
-                        if self.stop_requested: return
-                        # 4. Click tọa độ (640, 435) ➔ (885, 575)
-                        self.after(0, self.log_info, "👉 Click (640, 435) ➔ Click (885, 575)...")
-                        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 640 435"])
-                        time.sleep(0.8)
+                        # Đánh trận Phụ Bản Đội:
+                        if self._should_stop_card_E(): return
+                        self.after(0, self.log_info, "👉 Click (885, 575) (Bắt đầu)...")
                         self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 885 575"])
                         time.sleep(0.8)
 
-                        if self.stop_requested: return
-                        # 5. Chờ 5 giây
-                        self.after(0, self.log_info, f"⏳ [{pb_name}] Chờ 5 giây...")
+                        if self._should_stop_card_E(): return
+                        self.after(0, self.log_info, f"⏳ [{pb_name}] Chờ 5 giây nạp trận...")
                         for _ in range(5):
-                            if self.stop_requested: return
+                            if self._should_stop_card_E(): return
                             time.sleep(1.0)
 
-                        if self.stop_requested: return
-                        # 6. Hoãn 40 giây & Click (1165, 210) mỗi 0.5s
-                        self.after(0, self.log_info, f"⏳ [{pb_name}] Hoãn 40 giây & click liên tục (1165, 210) mỗi 0.5s...")
-                        for _ in range(80):
-                            if self.stop_requested: return
+                        if self._should_stop_card_E(): return
+                        self.after(0, self.log_info, f"⏳ [{pb_name}] Hoãn {delay_sec} giây & click liên tục Auto Đánh (1165, 210) mỗi 0.8s (tổng {total_clicks} lần)...")
+                        for _ in range(total_clicks):
+                            if self._should_stop_card_E(): return
                             self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1165 210"])
-                            time.sleep(0.5)
+                            time.sleep(0.8)
 
-                        if self.stop_requested: return
-                        # 7. Quét b_xn.png mỗi 5s & Click (1165, 210) mỗi 0.5s đến khi tìm thấy
-                        self.after(0, self.log_info, f"👁️ [{pb_name}] Bắt đầu quét 'b_xn.png' mỗi 5s & click (1165, 210) mỗi 0.5s...")
+                        if self._should_stop_card_E(): return
+                        self.after(0, self.log_info, f"👁️ [{pb_name}] Quét tìm nút Xác Nhận 'card_b/b_xn.png' mỗi 3s (vẫn tiếp tục click Auto (1165, 210) mỗi 0.8s)...")
                         xn_x, xn_y = None, None
-                        while not self.stop_requested:
+                        while not self._should_stop_card_E():
                             xn_x, xn_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_xn.png", threshold=0.85)
                             if xn_x is not None and xn_y is not None:
-                                self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_b/b_xn.png' tại ({xn_x}, {xn_y})! Dừng click liên tiếp.")
+                                self.after(0, self.log_info, f"🎯 Mắt thần phát hiện ảnh 'card_b/b_xn.png' tại ({xn_x}, {xn_y})!")
                                 break
 
-                            # Click liên tục trong 5s (10 lần x 0.5s)
-                            for _ in range(10):
-                                if self.stop_requested: break
+                            # Click liên tục trong 3s (vòng lặp 3.0s / 0.8s = ~4 lần)
+                            for _ in range(4):
+                                if self._should_stop_card_E(): break
                                 self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1165 210"])
-                                time.sleep(0.5)
+                                time.sleep(0.8)
 
-                        if self.stop_requested: return
-                        # 8. Click vào ảnh b_xn.png
+                        if self._should_stop_card_E(): return
                         if xn_x is not None and xn_y is not None:
-                            self.after(0, self.log_info, f"👉 Click vào ảnh 'b_xn.png' tại ({xn_x}, {xn_y})...")
+                            self.after(0, self.log_info, f"👉 Tap nhấp chọn ảnh Xác Nhận 'card_b/b_xn.png' tại ({xn_x}, {xn_y}) để hoàn thành {pb_name}...")
                             self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {xn_x} {xn_y}"])
                             time.sleep(1.0)
-            else:
-                # --- KHÔNG TÍCH BẤT KỲ Ô PB NÀO (20, 50, 80, 110) ➔ BỎ QUA BƯỚC 1 VÀ BƯỚC 2 ---
-                if self.stop_requested: return
-                self.after(0, self.log_info, "⚡ [Phụ Bản Đội - Cá Nhân] KHÔNG TÍCH ô PB nào (20, 50, 80, 110) ➔ Bỏ qua Bước 1 & Bước 2, thực thi trực tiếp...")
 
-                # 1. Click tiếp (885, 575) (nghỉ 0.8s)
-                self.after(0, self.log_info, "👉 1. Click (885, 575)...")
-                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 885 575"])
-                time.sleep(0.8)
-
-                if self.stop_requested: return
-                # 2. Chờ 5 giây
-                self.after(0, self.log_info, "⏳ 2. Chờ 5 giây...")
-                for _ in range(5):
-                    if self.stop_requested: return
-                    time.sleep(1.0)
-
-                if self.stop_requested: return
-                # 3. Hoãn 40 giây & Click (1165, 210) mỗi 0.5s
-                self.after(0, self.log_info, "⏳ 3. Hoãn 40 giây & click liên tục (1165, 210) mỗi 0.5s...")
-                for _ in range(80):
-                    if self.stop_requested: return
-                    self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1165 210"])
-                    time.sleep(0.5)
-
-                if self.stop_requested: return
-                # 4. Quét b_xn.png mỗi 5s & Click (1165, 210) mỗi 0.5s
-                self.after(0, self.log_info, "👁️ 4. Bắt đầu quét 'b_xn.png' mỗi 5s & click liên tục (1165, 210) mỗi 0.5s...")
-                xn_x, xn_y = None, None
-                while not self.stop_requested:
-                    xn_x, xn_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_xn.png", threshold=0.85)
-                    if xn_x is not None and xn_y is not None:
-                        self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_b/b_xn.png' tại ({xn_x}, {xn_y})! Dừng click liên tiếp.")
-                        break
-
-                    # Click liên tục trong 5s (10 lần x 0.5s)
-                    for _ in range(10):
-                        if self.stop_requested: break
-                        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1165 210"])
-                        time.sleep(0.5)
-
-                if self.stop_requested: return
-                # 5. Click vào ảnh b_xn.png
-                if xn_x is not None and xn_y is not None:
-                    self.after(0, self.log_info, f"👉 5. Click vào ảnh 'b_xn.png' tại ({xn_x}, {xn_y})...")
-                    self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {xn_x} {xn_y}"])
-                    time.sleep(1.0)
+                        # Khi hoàn thành 1 mốc Phụ Bản -> hoãn 3 giây để tiếp tục mốc Phụ Bản tiếp theo
+                        if self._should_stop_card_E(): return
+                        self.after(0, self.log_info, f"⏳ [{pb_name}] Hoàn thành mốc {pb_name}! Hoãn 3 giây để tiếp tục mốc Phụ Bản tiếp theo...")
+                        time.sleep(3.0)
 
         # ---------------- 3. TỰ ĐỘNG TẮT CÔNG TẮC & LƯU CẤU HÌNH (GIỮ NGUYÊN Ô TÍCH) ----------------
         self.var_switch_E.set(False)
@@ -2546,6 +2539,305 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.after(0, self.save_config)
         self.after(0, self.log_info, "✅ [4/6: TỔ ĐỘI] Đã thực thi hoàn tất dứt điểm! (Giữ nguyên các ô tích)")
 
+    def _run_boss_safezone(self, dnconsole_path: str, tab_index: str):
+        """PHẦN 1: QUY TRÌNH VỀ KHU AN TOÀN CỦA BOSS THẾ GIỚI"""
+        if self._should_stop_card_C(): return
+        self.after(0, self.log_info, "👁️ Quét tìm nút 'login_x.png' để đóng bảng quảng cáo/thông báo...")
+        lx_x, lx_y = self._find_template_on_screen(dnconsole_path, tab_index, "login_x.png", threshold=0.75)
+        if lx_x is not None and lx_y is not None:
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'login_x.png' tại ({lx_x}, {lx_y})! Click chọn...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {lx_x} {lx_y}"])
+            time.sleep(1.0)
+
+        if self._should_stop_card_C(): return
+        self.after(0, self.log_info, "👁️ [Boss Thế Giới - Bước 1.1] Quét tìm nút Vị Trí 'a_vitri.png' (85%)...")
+        v_x, v_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_vitri.png", threshold=0.85)
+        if v_x is not None and v_y is not None:
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'a_vitri.png' tại ({v_x}, {v_y})! Tap click trực tiếp...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {v_x} {v_y}"])
+            time.sleep(1.0)
+        else:
+            self.after(0, self.log_info, "👉 Chưa thấy 'a_vitri.png' ➔ Click nút xanh lá góc dưới phải (1213, 648) mở menu...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1213 648"])
+            time.sleep(1.2)
+            if self._should_stop_card_C(): return
+            v_x, v_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_vitri.png", threshold=0.85)
+            if v_x is not None and v_y is not None:
+                self.after(0, self.log_info, f"🎯 Phát hiện nút 'a_vitri.png' tại ({v_x}, {v_y})! Tap click trực tiếp...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {v_x} {v_y}"])
+                time.sleep(1.0)
+            else:
+                self.after(0, self.log_info, "⚠️ Chưa quét thấy biểu tượng 'a_vitri.png' trong bảng menu.")
+
+        if self._should_stop_card_C(): return
+        self.after(0, self.log_info, "👉 [Boss Thế Giới - Bước 1.2] Click liên tục (435, 250) mỗi 0.5s cho đến khi xuất hiện nút Có 'card_c/c_co.png' (85%)...")
+        while not self._should_stop_card_C():
+            co_x, co_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_co.png", threshold=0.85)
+            if co_x is not None and co_y is not None:
+                self.after(0, self.log_info, f"🎯 Mắt thần phát hiện nút Có 'card_c/c_co.png' tại ({co_x}, {co_y})! Dừng click (435, 250).")
+                break
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 435 250"])
+            time.sleep(0.5)
+
+        if self._should_stop_card_C(): return
+        self.after(0, self.log_info, "👁️ [Boss Thế Giới - Bước 1.3] Click liên tục nút Có 'card_c/c_co.png' (0.5s mỗi lần) cho tới khi hết ảnh...")
+        while not self._should_stop_card_C():
+            co_x, co_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_co.png", threshold=0.85)
+            if co_x is not None and co_y is not None:
+                self.after(0, self.log_info, f"🎯 Phát hiện nút Có 'card_c/c_co.png' tại ({co_x}, {co_y}) ➔ Click vào vị trí ảnh...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {co_x} {co_y}"])
+                time.sleep(0.5)
+            else:
+                self.after(0, self.log_info, "ℹ️ Không còn thấy ảnh nút Có 'card_c/c_co.png' ➔ Hoàn thành Bước 1 (Về Khu An Toàn)!")
+                break
+
+        if self._should_stop_card_C(): return
+        self.after(0, self.log_info, "⏳ [Boss Thế Giới - Bước 1.4] Hoãn 3 giây trước khi quét kiểm tra lại nút 'a_vitri.png'...")
+        time.sleep(3.0)
+
+        if self._should_stop_card_C(): return
+        self.after(0, self.log_info, "👁️ [Boss Thế Giới - Bước 1.4] Quét kiểm tra lại nút 'a_vitri.png' (85%)...")
+        v_check_x, v_check_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_vitri.png", threshold=0.85)
+        if v_check_x is not None and v_check_y is not None:
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'a_vitri.png' vẫn còn tại ({v_check_x}, {v_check_y}) ➔ Click (1213, 648) để thu gọn menu...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1213 648"])
+            time.sleep(1.0)
+        else:
+            self.after(0, self.log_info, "ℹ️ Không thấy nút 'a_vitri.png' ➔ Bỏ qua thu gọn menu.")
+
+    def _run_boss_pre_move(self, dnconsole_path: str, tab_index: str) -> bool:
+        """PHẦN THÊM: THAO TÁC TRƯỚC PHẦN 3 DI CHUYỂN CỦA BOSS THẾ GIỚI. Trả về True nếu tìm thấy c_dichuyen.png (bỏ qua di chuyển)"""
+        if self._should_stop_card_C(): return False
+        self.after(0, self.log_info, "👁️ [Boss - Thao Tác Trước Di Chuyển] 1. Quét nút Sự Kiện 'card_c/c_sukien.png'...")
+        sk_x, sk_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_sukien.png", threshold=0.85)
+        if sk_x is not None and sk_y is not None:
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_c/c_sukien.png' tại ({sk_x}, {sk_y})! Tap click chọn...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {sk_x} {sk_y}"])
+            time.sleep(1.0)
+        else:
+            self.after(0, self.log_info, "👉 Chưa thấy 'c_sukien.png' ➔ Click nút xanh lá góc dưới phải (1213, 648) mở menu...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1213 648"])
+            time.sleep(1.2)
+            if self._should_stop_card_C(): return False
+            sk_x, sk_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_sukien.png", threshold=0.85)
+            if sk_x is not None and sk_y is not None:
+                self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_c/c_sukien.png' tại ({sk_x}, {sk_y})! Tap click chọn...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {sk_x} {sk_y}"])
+                time.sleep(1.0)
+            else:
+                self.after(0, self.log_info, "⚠️ Chưa quét thấy biểu tượng 'card_c/c_sukien.png' trong bảng menu.")
+
+        if self._should_stop_card_C(): return False
+        self.after(0, self.log_info, "👁️ [Boss - Thao Tác Trước Di Chuyển] 2. Quét nút Boss TG 'card_c/c_skboss.png'...")
+        skb_x, skb_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_skboss.png", threshold=0.85)
+        if skb_x is not None and skb_y is not None:
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_c/c_skboss.png' tại ({skb_x}, {skb_y})! Tap click chọn...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {skb_x} {skb_y}"])
+            time.sleep(0.5)
+        else:
+            self.after(0, self.log_info, "ℹ️ Không tìm thấy 'card_c/c_skboss.png' ➔ Bỏ qua.")
+
+        if self._should_stop_card_C(): return False
+        self.after(0, self.log_info, "👁️ [Boss - Thao Tác Trước Di Chuyển] 3. Quét nút Dịch Chuyển 'card_c/c_dichuyen.png'...")
+        dc_x, dc_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_dichuyen.png", threshold=0.85)
+        if dc_x is not None and dc_y is not None:
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_c/c_dichuyen.png' tại ({dc_x}, {dc_y})! Tap click ➔ Hoãn 3.0s ➔ Chuyển thẳng qua PHẦN 4: ĐÁNH BOSS...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {dc_x} {dc_y}"])
+            time.sleep(3.0)
+            return True
+        else:
+            self.after(0, self.log_info, "ℹ️ Không tìm thấy 'card_c/c_dichuyen.png' ➔ Chuyển qua PHẦN 3: DI CHUYỂN.")
+            return False
+
+    def _run_boss_workflow(self, dnconsole_path: str, tab_name: str, tab_index: str, max_turns: int = 5):
+        """QUY TRÌNH THỰC THI THAO TÁC ĐÁNH BOSS THẾ GIỚI (PHẦN THÊM -> PHẦN 3 -> PHẦN 4 với số lượt max_turns)"""
+        if self._should_stop_card_C(): return
+
+        skip_di_chuyen = self._run_boss_pre_move(dnconsole_path, tab_index)
+
+        if not skip_di_chuyen:
+            # 📌 PHẦN 3: DI CHUYỂN
+            self.after(0, self.log_info, "🚀 [Boss - Di Chuyển] Nghỉ 3s ➔ (1115, 87) ➔ (1223, 227) ➔ (1235, 551) ➔ (1178, 405) ➔ (704, 196) ➔ (1115, 87)...")
+            for _ in range(3):
+                if self._should_stop_card_C(): return
+                time.sleep(1.0)
+
+            if self._should_stop_card_C(): return
+            self.after(0, self.log_info, "👉 [Boss - Di Chuyển] Click (1115, 87)...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1115 87"])
+            time.sleep(1.0)
+
+            if self._should_stop_card_C(): return
+            self.after(0, self.log_info, "👉 [Boss - Di Chuyển] Click (1223, 227) ➔ Nghỉ 5s...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1223 227"])
+            for _ in range(5):
+                if self._should_stop_card_C(): return
+                time.sleep(1.0)
+
+            if self._should_stop_card_C(): return
+            self.after(0, self.log_info, "👉 [Boss - Di Chuyển] Click (1235, 551) ➔ Nghỉ 4s...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1235 551"])
+            for _ in range(4):
+                if self._should_stop_card_C(): return
+                time.sleep(1.0)
+
+            if self._should_stop_card_C(): return
+            self.after(0, self.log_info, "👉 [Boss - Di Chuyển] Click (1178, 405) ➔ Nghỉ 4s...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1178 405"])
+            for _ in range(4):
+                if self._should_stop_card_C(): return
+                time.sleep(1.0)
+
+            if self._should_stop_card_C(): return
+            self.after(0, self.log_info, "👉 [Boss - Di Chuyển] Click (704, 196) ➔ Nghỉ 2s...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 704 196"])
+            for _ in range(2):
+                if self._should_stop_card_C(): return
+                time.sleep(1.0)
+
+            if self._should_stop_card_C(): return
+            self.after(0, self.log_info, "👉 [Boss - Di Chuyển] Click (1115, 87)...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1115 87"])
+            time.sleep(1.0)
+
+        # 📌 PHẦN 4: ĐÁNH BOSS THẾ GIỚI - QUY TRÌNH "BOSS"
+        self.after(0, self.log_info, f"🔄 [Boss] Bắt đầu thực thi {max_turns} lượt đánh...")
+        for turn in range(1, max_turns + 1):
+            if self._should_stop_card_C(): return
+            self.after(0, self.log_info, f"🔄 [Boss - Lượt {turn}/{max_turns}] Đang thực thi lượt {turn}...")
+
+            # [Bước 2 của Lượt] - Tìm Boss:
+            if self._should_stop_card_C(): return
+            self.after(0, self.log_info, f"👁️ [Lượt {turn} - Bước 2] Click liên tục (1240, 605) tìm ảnh Boss 'card_c/c_boss.png' (85%)...")
+            boss_x, boss_y = None, None
+            for click_idx in range(30):
+                if self._should_stop_card_C(): break
+                boss_x, boss_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_boss.png", threshold=0.85)
+                if boss_x is not None and boss_y is not None:
+                    self.after(0, self.log_info, f"🎯 Mắt thần phát hiện ảnh 'card_c/c_boss.png' tại ({boss_x}, {boss_y})! Dừng click (1240, 605).")
+                    break
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1240 605"])
+                time.sleep(0.8)
+
+            if self._should_stop_card_C(): return
+            if boss_x is None or boss_y is None:
+                self.after(0, self.log_info, f"⚠️ [Lượt {turn} - Bước 2] Sau 30 lần click không thấy 'card_c/c_boss.png' ➔ Chạy lại PHẦN 1 (SAFE ZONE) & PHẦN THÊM...")
+                self._run_boss_safezone(dnconsole_path, tab_index)
+                self._run_boss_pre_move(dnconsole_path, tab_index)
+
+            if self._should_stop_card_C(): return
+
+            # [Bước 3 của Lượt] - Đặt vị trí đánh:
+            self.after(0, self.log_info, f"👉 [Lượt {turn} - Bước 3] Click (1160, 570)...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1160 570"])
+            time.sleep(0.5)
+
+            if self._should_stop_card_C(): return
+            hl_x, hl_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_hetluot.png", threshold=0.85)
+            if hl_x is not None and hl_y is not None:
+                self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_c/c_hetluot.png' tại ({hl_x}, {hl_y})! Đã HẾT LƯỢT ➔ Chuyển thẳng xuống PHẦN 5: KẾT THÚC CARD C.")
+                break
+            else:
+                self.after(0, self.log_info, "ℹ️ Không thấy 'card_c/c_hetluot.png' ➔ Hoãn 0.5s ➔ Click (500, 635) ➔ Hoãn 0.5s...")
+                time.sleep(0.5)
+                if self._should_stop_card_C(): return
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 500 635"])
+                time.sleep(0.5)
+
+            # [Bước 4 của Lượt] - Bắt đầu chiến đấu:
+            if self._should_stop_card_C(): return
+            self.after(0, self.log_info, f"⏳ [Lượt {turn} - Bước 4] Đợi 2.0 giây trước khi click (185, 145)...")
+            for _ in range(2):
+                if self._should_stop_card_C(): return
+                time.sleep(1.0)
+
+            if self._should_stop_card_C(): return
+            self.after(0, self.log_info, f"👉 [Lượt {turn} - Bước 4] Click (185, 145) ➔ Hoãn 60s...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 185 145"])
+            for _ in range(60):
+                if self._should_stop_card_C(): return
+                time.sleep(1.0)
+
+    def _run_boss_ve_process(self, dnconsole_path: str, tab_name: str, tab_index: str, num_ve: int):
+        """THAO TÁC Ô CHECK VÉ (var_C3)"""
+        for ve_idx in range(1, num_ve + 1):
+            if self._should_stop_card_C(): return
+            self.after(0, self.log_info, f"🎫 [Vé - Lượt {ve_idx}/{num_ve}] Bắt đầu quy trình dùng Vé thứ {ve_idx}...")
+
+            # 1. Quét nút login_x.png (75%)
+            if self._should_stop_card_C(): return
+            self.after(0, self.log_info, "👁️ [Vé - Bước 1] Quét tìm nút 'login_x.png'...")
+            lx_x, lx_y = self._find_template_on_screen(dnconsole_path, tab_index, "login_x.png", threshold=0.75)
+            if lx_x is not None and lx_y is not None:
+                self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'login_x.png' tại ({lx_x}, {lx_y})! Click chọn ➔ Hoãn 1.0s...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {lx_x} {lx_y}"])
+                time.sleep(1.0)
+
+            # 2. Quét nút Túi (card_c/c_tui.png) (85%)
+            if self._should_stop_card_C(): return
+            self.after(0, self.log_info, "👁️ [Vé - Bước 2] Quét nút Túi 'card_c/c_tui.png' (85%)...")
+            tui_x, tui_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_tui.png", threshold=0.85)
+            if tui_x is not None and tui_y is not None:
+                self.after(0, self.log_info, f"🎯 Mắt thần phát hiện Túi tại ({tui_x}, {tui_y})! Tap click ➔ Hoãn 0.5s...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {tui_x} {tui_y}"])
+                time.sleep(0.5)
+            else:
+                self.after(0, self.log_info, "⚠️ Chưa thấy ảnh 'card_c/c_tui.png' trên màn hình.")
+
+            # 3. Cuộn tìm Vé Boss (tại tọa độ 920, 270)
+            if self._should_stop_card_C(): return
+            self.after(0, self.log_info, "📜 [Vé - Bước 3] Cuộn tìm ảnh Vé Boss 'card_c/c_veboss.png' (85%)...")
+            veboss_x, veboss_y = None, None
+            
+            # Thao tác cuộn xuống từ từ tại (920, 270)
+            for swipe_down_cnt in range(15):
+                if self._should_stop_card_C(): break
+                veboss_x, veboss_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_veboss.png", threshold=0.85)
+                if veboss_x is not None and veboss_y is not None:
+                    self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_c/c_veboss.png' tại ({veboss_x}, {veboss_y})!")
+                    break
+                # Kiểm tra xem có gặp c_khoa.png hay không
+                khoa_x, khoa_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_khoa.png", threshold=0.85)
+                if khoa_x is not None and khoa_y is not None:
+                    self.after(0, self.log_info, f"🔒 Phát hiện 'card_c/c_khoa.png' tại ({khoa_x}, {khoa_y}) nhưng chưa thấy Vé Boss ➔ Dừng cuộn xuống, chuyển sang cuộn ngược lên...")
+                    break
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input swipe 920 400 920 180 500"])
+                time.sleep(0.8)
+
+            # Nếu gặp c_khoa hoặc chưa thấy veboss -> Cuộn ngược lên lại 10 lần cho đến khi thấy card_c/c_veboss.png
+            if veboss_x is None or veboss_y is None:
+                for swipe_up_cnt in range(10):
+                    if self._should_stop_card_C(): break
+                    veboss_x, veboss_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_veboss.png", threshold=0.85)
+                    if veboss_x is not None and veboss_y is not None:
+                        self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_c/c_veboss.png' tại ({veboss_x}, {veboss_y})!")
+                        break
+                    self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input swipe 920 180 920 400 500"])
+                    time.sleep(0.8)
+
+            if veboss_x is not None and veboss_y is not None:
+                self.after(0, self.log_info, f"👉 Click vào ảnh Vé Boss tại ({veboss_x}, {veboss_y}) ➔ Click (755, 460) ➔ Click (320, 25)...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {veboss_x} {veboss_y}"])
+                time.sleep(0.5)
+                if self._should_stop_card_C(): return
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 755 460"])
+                time.sleep(0.5)
+                if self._should_stop_card_C(): return
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 320 25"])
+                time.sleep(0.5)
+
+            # Quét nút login_x.png (75%)
+            if self._should_stop_card_C(): return
+            lx_x2, lx_y2 = self._find_template_on_screen(dnconsole_path, tab_index, "login_x.png", threshold=0.75)
+            if lx_x2 is not None and lx_y2 is not None:
+                self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'login_x.png' tại ({lx_x2}, {lx_y2})! Click đóng ➔ Hoãn 0.5s...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {lx_x2} {lx_y2}"])
+                time.sleep(0.5)
+
+            # Chạy thao tác của ô check Boss nhưng PHẦN 4 chỉ chạy 1 turn đầu tiên!
+            self.after(0, self.log_info, f"🚀 [Vé - Lượt {ve_idx}/{num_ve}] Khởi chạy quy trình Boss (chỉ chạy 1 turn ở PHẦN 4)...")
+            self._run_boss_workflow(dnconsole_path, tab_name, tab_index, max_turns=1)
+
     def _execute_card_C_boss_tg(self, dnconsole_path: str, tab_name: str, tab_index: str):
         """Thực thi Card 2: BOSS THẾ GIỚI (C)"""
         if self._should_stop_card_C():
@@ -2553,8 +2845,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             return
 
         checked = [
-            ("Boss Sáng", self.var_C1),
-            ("Boss Trưa", self.var_C2),
+            ("Boss", self.var_C1),
             ("Vé", self.var_C3)
         ]
         active_items = [(name, var) for name, var in checked if var.get()]
@@ -2572,50 +2863,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         # =========================================================================
         # 📌 1. VỀ KHU AN TOÀN
         # =========================================================================
-        if self._should_stop_card_C(): return
-        self.after(0, self.log_info, "👁️ [Boss Thế Giới - Bước 1.1] Quét tìm nút Vị Trí 'a_vitri.png' (85%)...")
-        v_x, v_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_vitri.png", threshold=0.85)
-        if v_x is not None and v_y is not None:
-            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'a_vitri.png' tại ({v_x}, {v_y})! Click chọn...")
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {v_x} {v_y}"])
-            time.sleep(1.0)
-        else:
-            self.after(0, self.log_info, "👉 Chưa thấy 'a_vitri.png' ➔ Click nút xanh lá góc dưới phải (1213, 648) mở menu...")
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1213 648"])
-            time.sleep(1.2)
-            if self._should_stop_card_C(): return
-            v_x, v_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_vitri.png", threshold=0.85)
-            if v_x is not None and v_y is not None:
-                self.after(0, self.log_info, f"🎯 Phát hiện nút 'a_vitri.png' tại ({v_x}, {v_y})! Click chọn...")
-                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {v_x} {v_y}"])
-                time.sleep(1.0)
-            else:
-                self.after(0, self.log_info, "⚠️ Chưa quét thấy biểu tượng 'a_vitri.png' trong bảng menu.")
-
-        if self._should_stop_card_C(): return
-        self.after(0, self.log_info, "👉 [Boss Thế Giới - Bước 1.2] Click liên tục (435, 250) mỗi 0.5s cho đến khi xuất hiện nút Có 'card_c/c_co.png' (85%)...")
-
-        # Click liên tục (435, 250) (cách nhau 0.5s) đến khi hiện ảnh card_c/c_co.png (85%)
-        while not self._should_stop_card_C():
-            co_x, co_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_co.png", threshold=0.85)
-            if co_x is not None and co_y is not None:
-                self.after(0, self.log_info, f"🎯 Mắt thần phát hiện nút Có 'card_c/c_co.png' tại ({co_x}, {co_y})! Dừng click (435, 250).")
-                break
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 435 250"])
-            time.sleep(0.5)
-
-        # 1.3. Quét nhận diện nút Có card_c/c_co.png (85%): Nếu phát hiện ➔ Click vào ảnh (0.5s mỗi lần) đến khi hết ảnh
-        if self._should_stop_card_C(): return
-        self.after(0, self.log_info, "👁️ [Boss Thế Giới - Bước 1.3] Click liên tục nút Có 'card_c/c_co.png' (0.5s mỗi lần) cho tới khi hết ảnh...")
-        while not self._should_stop_card_C():
-            co_x, co_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_co.png", threshold=0.85)
-            if co_x is not None and co_y is not None:
-                self.after(0, self.log_info, f"🎯 Phát hiện nút Có 'card_c/c_co.png' tại ({co_x}, {co_y}) ➔ Click vào vị trí ảnh...")
-                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {co_x} {co_y}"])
-                time.sleep(0.5)
-            else:
-                self.after(0, self.log_info, "ℹ️ Không còn thấy ảnh nút Có 'card_c/c_co.png' ➔ Hoàn thành Bước 1 (Về Khu An Toàn)!")
-                break
+        self._run_boss_safezone(dnconsole_path, tab_index)
 
         # =========================================================================
         # 📌 2. CHUYỂN ĐỔI VỊ TRÍ NHÂN VẬT (THEO DROPDOWN)
@@ -2624,7 +2872,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.after(0, self.log_info, f"⚙️ [Boss Thế Giới - Bước 2] Vị trí nhân vật: '{selected_char}'")
 
         if selected_char == "Xuất Chiến":
-            self.after(0, self.log_info, "ℹ️ Vị trí 'Xuất Chiến': Bỏ qua Bước 2, chuyển thẳng xuống các ô Check.")
+            self.after(0, self.log_info, "ℹ️ Vị trí 'Xuất Chiến': Bỏ qua Bước 2, chuyển thẳng xuống Phần Tiếp Theo.")
         else:
             # Nghỉ 3 giây trước khi khởi động Bước 2
             if self._should_stop_card_C(): return
@@ -2694,122 +2942,24 @@ class ToolLDPlayerGUI(ctk.CTk):
             time.sleep(1.0)
 
         # =========================================================================
-        # 📌 Ô CHECK 1: BOSS SÁNG (Khi var_C1 được tích)
+        # 📌 Ô CHECK 1: BOSS (Khi var_C1 được tích)
         # =========================================================================
         if self.var_C1.get():
             if self._should_stop_card_C(): return
-            self.after(0, self.log_info, "🚀 [Ô Check 1: BOSS SÁNG] Khởi chạy quy trình Boss Sáng...")
+            self.after(0, self.log_info, "🚀 [Ô Check 1: BOSS] Khởi chạy quy trình Boss (5 lượt)...")
+            self._run_boss_workflow(dnconsole_path, tab_name, tab_index, max_turns=5)
 
-            # 1. Khởi động trận đánh (Click tọa độ):
-            # Nghỉ 3s ➔ Click (1115, 87) ➔ Nghỉ 1s ➔ Click (1223, 227) ➔ Nghỉ 5s ➔ Click (1235, 551) ➔ Nghỉ 4s ➔ Click (1178, 405) ➔ Nghỉ 4s ➔ Click (704, 196) ➔ Nghỉ 2s ➔ Click (1115, 87) ➔ Nghỉ 1s
-            self.after(0, self.log_info, "👉 [Boss Sáng - Khởi động] Nghỉ 3s ➔ (1115, 87) ➔ (1223, 227) ➔ (1235, 551) ➔ (1178, 405) ➔ (704, 196) ➔ (1115, 87)...")
-            
-            # Nghỉ 3s trước khi bắt đầu
-            for _ in range(3):
-                if self._should_stop_card_C(): return
-                time.sleep(1.0)
-
-            # Click (1115, 87) - Nghỉ 1s
+        # =========================================================================
+        # 📌 Ô CHECK 2: VÉ (Khi var_C3 được tích)
+        # =========================================================================
+        if self.var_C3.get():
             if self._should_stop_card_C(): return
-            self.after(0, self.log_info, "👉 [Boss Sáng - Khởi động] Click (1115, 87)...")
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1115 87"])
-            time.sleep(1.0)
-
-            # Click (1223, 227) - Nghỉ 5s
-            if self._should_stop_card_C(): return
-            self.after(0, self.log_info, "👉 [Boss Sáng - Khởi động] Click (1223, 227) ➔ Nghỉ 5s...")
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1223 227"])
-            for _ in range(5):
-                if self._should_stop_card_C(): return
-                time.sleep(1.0)
-
-            # Click (1235, 551) - Nghỉ 4s
-            if self._should_stop_card_C(): return
-            self.after(0, self.log_info, "👉 [Boss Sáng - Khởi động] Click (1235, 551) ➔ Nghỉ 4s...")
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1235 551"])
-            for _ in range(4):
-                if self._should_stop_card_C(): return
-                time.sleep(1.0)
-
-            # Click (1178, 405) - Nghỉ 4s
-            if self._should_stop_card_C(): return
-            self.after(0, self.log_info, "👉 [Boss Sáng - Khởi động] Click (1178, 405) ➔ Nghỉ 4s...")
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1178 405"])
-            for _ in range(4):
-                if self._should_stop_card_C(): return
-                time.sleep(1.0)
-
-            # Click (704, 196) - Nghỉ 2s
-            if self._should_stop_card_C(): return
-            self.after(0, self.log_info, "👉 [Boss Sáng - Khởi động] Click (704, 196) ➔ Nghỉ 2s...")
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 704 196"])
-            for _ in range(2):
-                if self._should_stop_card_C(): return
-                time.sleep(1.0)
-
-            # Click (1115, 87) - Nghỉ 1s
-            if self._should_stop_card_C(): return
-            self.after(0, self.log_info, "👉 [Boss Sáng - Khởi động] Click (1115, 87)...")
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1115 87"])
-            time.sleep(1.0)
-
-            # Lặp lại đúng 5 lượt đánh (mỗi lượt gồm các bước từ 2 đến 5)
-            self.after(0, self.log_info, "🔄 [Boss Sáng] Bắt đầu lặp lại đúng 5 lượt đánh (từ Bước 2 đến Bước 5)...")
-            for turn in range(1, 6):
-                if self._should_stop_card_C(): return
-                self.after(0, self.log_info, f"🔄 [Boss Sáng - Lượt {turn}/5] Đang thực thi lượt {turn}...")
-
-                # 2. Click (1240, 605) đến khi quét thấy ảnh Boss card_c/c_boss.png (85%) thì dừng lại
-                if self._should_stop_card_C(): return
-                self.after(0, self.log_info, f"👁️ [Lượt {turn} - Bước 2] Click liên tục (1240, 605) cho tới khi phát hiện ảnh Boss 'card_c/c_boss.png' (85%)...")
-                boss_x, boss_y = None, None
-                while not self._should_stop_card_C():
-                    boss_x, boss_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_boss.png", threshold=0.85)
-                    if boss_x is not None and boss_y is not None:
-                        self.after(0, self.log_info, f"🎯 Mắt thần phát hiện ảnh 'card_c/c_boss.png' tại ({boss_x}, {boss_y})! Dừng click (1240, 605).")
-                        break
-                    self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1240 605"])
-                    time.sleep(0.8)
-
-                if self._should_stop_card_C(): return
-
-                # 3. Click (1160, 570) ➔ (500, 635)
-                self.after(0, self.log_info, f"👉 [Lượt {turn} - Bước 3] Click (1160, 570) ➔ (500, 635)...")
-                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1160 570"])
-                time.sleep(0.8)
-                if self._should_stop_card_C(): return
-                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 500 635"])
-                time.sleep(0.8)
-
-                # 4. Đợi 3 giây ➔ Click (185, 145)
-                if self._should_stop_card_C(): return
-                self.after(0, self.log_info, f"⏳ [Lượt {turn} - Bước 4] Đợi 3 giây trước khi click (185, 145)...")
-                for _ in range(3):
-                    if self._should_stop_card_C(): return
-                    time.sleep(1.0)
-
-                if self._should_stop_card_C(): return
-                self.after(0, self.log_info, f"👉 [Lượt {turn} - Bước 4] Click (185, 145)...")
-                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 185 145"])
-                time.sleep(0.8)
-
-                # 5. Bắt đầu quét ảnh card_c/c_dung.png (70%) (5 giây 1 lần)
-                if self._should_stop_card_C(): return
-                self.after(0, self.log_info, f"👁️ [Lượt {turn} - Bước 5] Quét tìm ảnh 'card_c/c_dung.png' (70%, 5 giây 1 lần)...")
-                while not self._should_stop_card_C():
-                    dung_x, dung_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_dung.png", threshold=0.70)
-                    if dung_x is not None and dung_y is not None:
-                        self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_c/c_dung.png' tại ({dung_x}, {dung_y}) ➔ Hoàn thành lượt đánh {turn}/5! Nghỉ 5 giây...")
-                        for _ in range(5):
-                            if self._should_stop_card_C(): break
-                            time.sleep(1.0)
-                        break
-                    for _ in range(5):
-                        if self._should_stop_card_C(): break
-                        time.sleep(1.0)
-
-            # Hoàn thành 5 lượt đánh Boss Sáng (giữ nguyên ô tích)
-            self.after(0, self.log_info, "✅ [Boss Sáng] Đã hoàn thành 5 lượt đánh (giữ nguyên ô tích).")
+            try:
+                num_ve = int(selected_ve)
+            except ValueError:
+                num_ve = 1
+            self.after(0, self.log_info, f"🚀 [Ô Check 2: VÉ] Khởi chạy quy trình Vé (Số lượng: {num_ve})...")
+            self._run_boss_ve_process(dnconsole_path, tab_name, tab_index, num_ve=num_ve)
 
         # ---------------- 3. TỰ ĐỘNG TẮT CÔNG TẮC & LƯU CẤU HÌNH (GIỮ NGUYÊN Ô TÍCH) ----------------
         self.var_switch_C.set(False)
