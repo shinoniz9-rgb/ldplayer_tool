@@ -47,12 +47,17 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.game_icon_path = None
         self.game_ctk_image = None
 
-        # Biến trạng thái Công tắc tổng ON/OFF các Card
+        # Biến trạng thái Công tắc tổng ON/OFF & Nút Dừng các Card
         self.var_switch_B = ctk.BooleanVar(value=False)
+        self.var_pause_B = ctk.BooleanVar(value=False)
         self.var_switch_C = ctk.BooleanVar(value=False)
+        self.var_pause_C = ctk.BooleanVar(value=False)
         self.var_switch_D = ctk.BooleanVar(value=False)
+        self.var_pause_D = ctk.BooleanVar(value=False)
         self.var_switch_E = ctk.BooleanVar(value=False)
+        self.var_pause_E = ctk.BooleanVar(value=False)
         self.var_switch_F = ctk.BooleanVar(value=False)
+        self.var_pause_F = ctk.BooleanVar(value=False)
 
         # Biến trạng thái các ô Checkbox Cấu hình B (DỊ GIỚI ĐÊM)
         self.var_B1 = ctk.BooleanVar(value=False)
@@ -71,6 +76,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.var_D2 = ctk.BooleanVar(value=False)
         self.var_D3 = ctk.BooleanVar(value=False)
         self.var_D4 = ctk.BooleanVar(value=False)
+        self.var_D_chuyen_khu = ctk.BooleanVar(value=False)
 
         # Biến trạng thái các ô Checkbox Cấu hình E (PHỤ BẢN ĐƠN / ĐỘI)
         self.var_E_don = ctk.BooleanVar(value=False)
@@ -146,11 +152,11 @@ class ToolLDPlayerGUI(ctk.CTk):
 
 
     def _update_card_G_visibility(self):
-        """Cập nhật trạng thái sáng/tối & khóa tùy chỉnh của Card 3 (TỔ ĐỘI) theo ô check 'Tổ Đội' ở Card E"""
-        if not hasattr(self, 'card_G') or not hasattr(self, 'var_E_doi'):
+        """Cập nhật trạng thái sáng/tối & khóa tùy chỉnh của Card 3 (TỔ ĐỘI) theo ô check 'Tổ Đội' ở Card E hoặc Card 40 NPC (Card D)"""
+        if not hasattr(self, 'card_G'):
             return
 
-        is_doi_checked = self.var_E_doi.get()
+        is_doi_checked = (hasattr(self, 'var_E_doi') and self.var_E_doi.get()) or (hasattr(self, 'var_D2') and self.var_D2.get())
         if is_doi_checked:
             # SÁNG LÊN: Bật trạng thái tùy chỉnh và khôi phục màu tiêu đề sáng
             if hasattr(self, 'lbl_G'): self.lbl_G.configure(text_color="#FB923C")
@@ -204,11 +210,16 @@ class ToolLDPlayerGUI(ctk.CTk):
                 config["D_team_char"] = self.combo_D_team_char.get()
             if hasattr(self, 'combo_D_tang'):
                 config["D_tang"] = self.combo_D_tang.get()
+            if hasattr(self, 'var_pause_D'):
+                config["pause_D"] = self.var_pause_D.get()
 
             for prefix in ["B", "C", "D", "E", "F"]:
                 switch_attr = f"var_switch_{prefix}"
                 if hasattr(self, switch_attr):
                     config[f"switch_{prefix}"] = False  # Luôn lưu công tắc các card ở trạng thái OFF
+                pause_attr = f"var_pause_{prefix}"
+                if hasattr(self, pause_attr):
+                    config[f"pause_{prefix}"] = getattr(self, pause_attr).get()
 
                 for num in range(1, 5):
                     key = f"{prefix}{num}"
@@ -266,18 +277,24 @@ class ToolLDPlayerGUI(ctk.CTk):
                     self.combo_C_ve.set(val if val in ["1", "2", "3", "4", "5"] else "1")
                 if "D_khu" in config and hasattr(self, 'combo_D_khu'):
                     val = config["D_khu"]
-                    self.combo_D_khu.set(val if val in ["Cố Định"] + [str(i) for i in range(1, 11)] else "Cố Định")
+                    self.combo_D_khu.set(val if val in ["Cố Định"] + [f"Khu {i}" for i in range(1, 11)] else "Cố Định")
                 if "D_team_char" in config and hasattr(self, 'combo_D_team_char'):
                     val = config["D_team_char"]
                     self.combo_D_team_char.set(val if val in opts else "Xuất Chiến")
                 if "D_tang" in config and hasattr(self, 'combo_D_tang'):
                     val = config["D_tang"]
                     self.combo_D_tang.set(val if val in ["35", "36", "37", "38"] else "35")
+                if "pause_D" in config and hasattr(self, 'var_pause_D'):
+                    self.var_pause_D.set(config["pause_D"])
 
                 for prefix in ["B", "C", "D", "E", "F"]:
                     switch_attr = f"var_switch_{prefix}"
                     if hasattr(self, switch_attr):
                         getattr(self, switch_attr).set(False)  # Bắt buộc công tắc về OFF khi mở tool
+                    pause_key = f"pause_{prefix}"
+                    pause_attr = f"var_pause_{prefix}"
+                    if pause_key in config and hasattr(self, pause_attr):
+                        getattr(self, pause_attr).set(config[pause_key])
 
                     for num in range(1, 5):
                         key = f"{prefix}{num}"
@@ -293,6 +310,7 @@ class ToolLDPlayerGUI(ctk.CTk):
 
                 if "selected_tab" in config and hasattr(self, 'combo_ld_tabs'):
                     self.saved_selected_tab = config["selected_tab"]
+                self._update_card_G_visibility()
             except Exception as e:
                 pass
 
@@ -581,49 +599,86 @@ class ToolLDPlayerGUI(ctk.CTk):
         self._on_checkbox_toggled()
 
     def _on_switch_B_toggled(self):
-        """Callback công tắc Card DỊ GIỚI: Gạt ON ➔ Sẵn sàng chờ nút Chạy; Gạt OFF ➔ Dừng tiến trình card này"""
+        """Callback công tắc Card DỊ GIỚI: Gạt ON ➔ Sẵn sàng chờ nút Chạy; Gạt OFF ➔ Dừng tiến trình card này & nhả ô Tạm Dừng"""
         self._on_checkbox_toggled()
         if not self.var_switch_B.get():
+            if hasattr(self, 'var_pause_B'):
+                self.var_pause_B.set(False)
             self.save_config()
-            self.log_info("🛑 [CARD DỊ GIỚI] Công tắc gạt về OFF ➔ Đã ngắt tiến trình Card Dị Giới!")
+            self.log_info("🛑 [CARD DỊ GIỚI] Công tắc gạt về OFF ➔ Đã ngắt tiến trình & nhả ô Tạm Dừng Card Dị Giới!")
         else:
             self.save_config()
             self.log_info("⚡ [CARD DỊ GIỚI] Công tắc gạt sang ON ➔ Sẵn sàng thực thi khi bấm nút 'Chạy'.")
 
+    def _on_pause_B_toggled(self):
+        """Callback nút Dừng ở Card Dị Giới"""
+        self._on_checkbox_toggled()
+        if self.var_pause_B.get():
+            self.log_info("⏸️ [DỊ GIỚI] Tích ô Dừng ➔ Tạm dừng hoạt động Dị Giới (nhả ô Dừng sẽ chạy tiếp)!")
+        else:
+            self.log_info("▶️ [DỊ GIỚI] Nhả ô Dừng ➔ Khôi phục chạy tiếp Dị Giới!")
+        self.save_config()
+
     def _on_switch_E_toggled(self):
-        """Callback công tắc Card PHỤ BẢN ĐƠN / ĐỘI: Gạt ON ➔ Sẵn sàng chờ nút Chạy; Gạt OFF ➔ Dừng tiến trình card này"""
+        """Callback công tắc Card PHỤ BẢN ĐƠN / ĐỘI: Gạt ON ➔ Sẵn sàng chờ nút Chạy; Gạt OFF ➔ Dừng tiến trình card này & nhả ô Tạm Dừng"""
         self._on_checkbox_toggled()
         if not self.var_switch_E.get():
+            if hasattr(self, 'var_pause_E'):
+                self.var_pause_E.set(False)
             self._update_card_G_visibility()
             self.save_config()
-            self.log_info("🛑 [CARD PHỤ BẢN ĐƠN / ĐỘI] Công tắc gạt về OFF ➔ Đã ngắt tiến trình Card Phụ Bản!")
+            self.log_info("🛑 [CARD PHỤ BẢN ĐƠN / ĐỘI] Công tắc gạt về OFF ➔ Đã ngắt tiến trình & nhả ô Tạm Dừng Card Phụ Bản!")
         else:
             self._update_card_G_visibility()
             self.save_config()
             self.log_info("⚡ [CARD PHỤ BẢN ĐƠN / ĐỘI] Công tắc gạt sang ON ➔ Sẵn sàng thực thi khi bấm nút 'Chạy'.")
 
+    def _on_pause_E_toggled(self):
+        """Callback nút Dừng ở Card Phụ Bản Đơn/Đội"""
+        self._on_checkbox_toggled()
+        if self.var_pause_E.get():
+            self.log_info("⏸️ [PHỤ BẢN] Tích ô Dừng ➔ Tạm dừng hoạt động Phụ Bản (nhả ô Dừng sẽ chạy tiếp)!")
+        else:
+            self.log_info("▶️ [PHỤ BẢN] Nhả ô Dừng ➔ Khôi phục chạy tiếp Phụ Bản!")
+        self.save_config()
+
     def _on_switch_C_toggled(self):
-        """Callback công tắc Card BOSS THẾ GIỚI: Gạt ON ➔ Sẵn sàng chờ nút Chạy; Gạt OFF ➔ Dừng tiến trình card này"""
+        """Callback công tắc Card BOSS THẾ GIỚI: Gạt ON ➔ Sẵn sàng chờ nút Chạy; Gạt OFF ➔ Dừng tiến trình card này & nhả ô Tạm Dừng"""
         self._on_checkbox_toggled()
         if not self.var_switch_C.get():
+            if hasattr(self, 'var_pause_C'):
+                self.var_pause_C.set(False)
             self.save_config()
-            self.log_info("🛑 [CARD BOSS THẾ GIỚI] Công tắc gạt về OFF ➔ Đã ngắt tiến trình Card Boss Thế Giới!")
+            self.log_info("🛑 [CARD BOSS THẾ GIỚI] Công tắc gạt về OFF ➔ Đã ngắt tiến trình & nhả ô Tạm Dừng Card Boss Thế Giới!")
         else:
             self.save_config()
             self.log_info("⚡ [CARD BOSS THẾ GIỚI] Công tắc gạt sang ON ➔ Sẵn sàng thực thi khi bấm nút 'Chạy'.")
 
+    def _on_pause_C_toggled(self):
+        """Callback nút Dừng ở Card Boss Thế Giới"""
+        self._on_checkbox_toggled()
+        if self.var_pause_C.get():
+            self.log_info("⏸️ [BOSS THẾ GIỚI] Tích ô Dừng ➔ Tạm dừng hoạt động Boss Thế Giới (nhả ô Dừng sẽ chạy tiếp)!")
+        else:
+            self.log_info("▶️ [BOSS THẾ GIỚI] Nhả ô Dừng ➔ Khôi phục chạy tiếp Boss Thế Giới!")
+        self.save_config()
+
     def _on_switch_D_toggled(self):
-        """Callback riêng cho công tắc Card E (40 NPC): Khi trượt sang OFF -> Ngắt tiến trình & giữ nguyên ô tích"""
+        """Callback riêng cho công tắc Card E (40 NPC): Khi trượt sang OFF -> Ngắt tiến trình & nhả ô Tạm Dừng, giữ nguyên các ô check"""
         self._on_checkbox_toggled()
         if not self.var_switch_D.get():
+            if hasattr(self, 'var_pause_D'):
+                self.var_pause_D.set(False)
             self.save_config()
-            self.log_info("🛑 [CARD E: 40 NPC] Công tắc gạt về OFF ➔ Đã ngắt tiến trình Card E (giữ nguyên các ô tích)!")
+            self.log_info("🛑 [CARD E: 40 NPC] Công tắc gạt về OFF ➔ Đã ngắt tiến trình & nhả ô Tạm Dừng Card E!")
         else:
             self.stop_requested = False
             tab_name, tab_index = self._get_selected_ld_info()
             if tab_index is None:
                 self.log_error("Vui lòng chọn một Tab LDPlayer trước khi bật công tắc 40 NPC!")
                 self.var_switch_D.set(False)
+                if hasattr(self, 'var_pause_D'):
+                    self.var_pause_D.set(False)
                 self.save_config()
                 return
 
@@ -634,24 +689,48 @@ class ToolLDPlayerGUI(ctk.CTk):
             if not os.path.exists(dnconsole_path):
                 self.log_error(f"Không tìm thấy ldconsole/dnconsole tại: {self.ld_path}")
                 self.var_switch_D.set(False)
+                if hasattr(self, 'var_pause_D'):
+                    self.var_pause_D.set(False)
                 self.save_config()
                 return
 
             self.log_info(f"⚡ [40 NPC] Công tắc vừa trượt ON ➔ Khởi chạy ngay thao tác trên Tab: {tab_name} (Index: {tab_index})...")
             threading.Thread(target=self._execute_card_D_40_npc, args=(dnconsole_path, tab_name, tab_index), daemon=True).start()
 
+    def _on_pause_D_toggled(self):
+        """Callback nút Dừng ở Card 40 NPC: Tích vào thì tạm dừng, nhả ra chạy tiếp"""
+        self._on_checkbox_toggled()
+        if self.var_pause_D.get():
+            self.log_info("⏸️ [40 NPC] Tích ô Dừng ➔ Tạm dừng hoạt động 40 NPC (nhả ô Dừng sẽ chạy tiếp)!")
+        else:
+            self.log_info("▶️ [40 NPC] Nhả ô Dừng ➔ Khôi phục chạy tiếp 40 NPC!")
+        self.save_config()
+
+    def _on_pause_F_toggled(self):
+        """Callback nút Dừng ở Card Nhị Kiều"""
+        self._on_checkbox_toggled()
+        if self.var_pause_F.get():
+            self.log_info("⏸️ [NHỊ KIỀU] Tích ô Dừng ➔ Tạm dừng hoạt động Nhị Kiều (nhả ô Dừng sẽ chạy tiếp)!")
+        else:
+            self.log_info("▶️ [NHỊ KIỀU] Nhả ô Dừng ➔ Khôi phục chạy tiếp Nhị Kiều!")
+        self.save_config()
+
     def _on_switch_F_toggled(self):
-        """Callback riêng cho công tắc Card F (NHỊ KIỀU): Khi trượt sang OFF -> Ngắt tiến trình & giữ nguyên ô tích"""
+        """Callback riêng cho công tắc Card F (NHỊ KIỀU): Khi trượt sang OFF -> Ngắt tiến trình & nhả ô Tạm Dừng, giữ nguyên các ô check"""
         self._on_checkbox_toggled()
         if not self.var_switch_F.get():
+            if hasattr(self, 'var_pause_F'):
+                self.var_pause_F.set(False)
             self.save_config()
-            self.log_info("🛑 [CARD F: NHỊ KIỀU] Công tắc gạt về OFF ➔ Đã ngắt tiến trình Card F (giữ nguyên các ô tích)!")
+            self.log_info("🛑 [CARD F: NHỊ KIỀU] Công tắc gạt về OFF ➔ Đã ngắt tiến trình & nhả ô Tạm Dừng Card F!")
         else:
             self.stop_requested = False
             tab_name, tab_index = self._get_selected_ld_info()
             if tab_index is None:
                 self.log_error("Vui lòng chọn một Tab LDPlayer trước khi bật công tắc Nhị Kiều!")
                 self.var_switch_F.set(False)
+                if hasattr(self, 'var_pause_F'):
+                    self.var_pause_F.set(False)
                 self.save_config()
                 return
 
@@ -662,6 +741,8 @@ class ToolLDPlayerGUI(ctk.CTk):
             if not os.path.exists(dnconsole_path):
                 self.log_error(f"Không tìm thấy ldconsole/dnconsole tại: {self.ld_path}")
                 self.var_switch_F.set(False)
+                if hasattr(self, 'var_pause_F'):
+                    self.var_pause_F.set(False)
                 self.save_config()
                 return
 
@@ -673,8 +754,8 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.container_cfg = ctk.CTkFrame(self, fg_color="transparent")
         self.container_cfg.grid(row=3, column=0, padx=(15, 4), pady=4, sticky="nsew")
         self.container_cfg.grid_columnconfigure(0, weight=24)
-        self.container_cfg.grid_columnconfigure(1, weight=16)
-        self.container_cfg.grid_columnconfigure(2, weight=60)  # Tăng kích thước card Dị giới theo chiều ngang thêm 10% (từ 50% lên 60%)
+        self.container_cfg.grid_columnconfigure(1, weight=13)  # Giảm 20% chiều ngang Cột 1 (Card Boss Thế Giới & Card 40 NPC) từ 16 xuống 13
+        self.container_cfg.grid_columnconfigure(2, weight=63)
         self.container_cfg.grid_rowconfigure((0, 1), weight=1)
 
         # ------------------- CARD 1: PHỤ BẢN ĐƠN / ĐỘI (Cột 0, Row 0) -------------------
@@ -687,15 +768,24 @@ class ToolLDPlayerGUI(ctk.CTk):
         hdr_E = ctk.CTkFrame(self.card_E, fg_color="transparent")
         hdr_E.grid(row=0, column=0, padx=8, pady=(6, 2), sticky="ew")
         hdr_E.grid_columnconfigure(0, weight=1)
+        hdr_E.grid_columnconfigure(1, weight=0)
+        hdr_E.grid_columnconfigure(2, weight=0)
 
         lbl_E = ctk.CTkLabel(hdr_E, text="PHỤ BẢN ĐƠN / ĐỘI", font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), text_color="#C084FC")
         lbl_E.grid(row=0, column=0, sticky="w")
+
+        self.chk_pause_E = ctk.CTkCheckBox(
+            hdr_E, text="Tạm Dừng", variable=self.var_pause_E, command=self._on_pause_E_toggled,
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
+            fg_color="#EF4444", hover_color="#DC2626", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=8
+        )
+        self.chk_pause_E.grid(row=0, column=1, sticky="e", padx=(0, 6))
 
         self.switch_E = ctk.CTkSwitch(
             hdr_E, text="", variable=self.var_switch_E, command=self._on_switch_E_toggled,
             width=36, height=18, switch_width=36, switch_height=18, fg_color="#374151", progress_color="#0284C7"
         )
-        self.switch_E.grid(row=0, column=1, sticky="e")
+        self.switch_E.grid(row=0, column=2, sticky="e")
 
         char_options = self._get_character_options()
 
@@ -720,7 +810,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.chk_E_don = ctk.CTkCheckBox(
             box_don_check, text="Cá Nhân", variable=self.var_E_don, command=self._on_checkbox_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
-            fg_color="#0284C7", hover_color="#0369A1", checkbox_width=14, checkbox_height=14, border_width=2, corner_radius=5
+            fg_color="#0284C7", hover_color="#0369A1", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
         )
         self.chk_E_don.pack(side="left", padx=(0, 1))
 
@@ -754,7 +844,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.chk_E_canhan = ctk.CTkCheckBox(
             box_checks_team, text="Cá Nhân", variable=self.var_E_canhan, command=self._on_E_canhan_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
-            fg_color="#0284C7", hover_color="#0369A1", checkbox_width=14, checkbox_height=14, border_width=2, corner_radius=5
+            fg_color="#0284C7", hover_color="#0369A1", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
         )
         self.chk_E_canhan.pack(side="left", padx=(0, 0))
 
@@ -764,7 +854,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.chk_E_doi = ctk.CTkCheckBox(
             box_checks_team, text="Tổ Đội", variable=self.var_E_doi, command=self._on_E_doi_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
-            fg_color="#0284C7", hover_color="#0369A1", checkbox_width=14, checkbox_height=14, border_width=2, corner_radius=5
+            fg_color="#0284C7", hover_color="#0369A1", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
         )
         self.chk_E_doi.pack(side="left", padx=(0, 0))
 
@@ -793,10 +883,10 @@ class ToolLDPlayerGUI(ctk.CTk):
         row_pb1.grid_columnconfigure(0, weight=0, minsize=65)
         row_pb1.grid_columnconfigure(1, weight=1)
 
-        self.chk_E1 = ctk.CTkCheckBox(row_pb1, text="PB 20", variable=self.var_E1, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkbox_width=14, checkbox_height=14, border_width=2, corner_radius=5)
+        self.chk_E1 = ctk.CTkCheckBox(row_pb1, text="PB 20", variable=self.var_E1, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
         self.chk_E1.grid(row=0, column=0, sticky="w")
 
-        self.chk_E2 = ctk.CTkCheckBox(row_pb1, text="PB 50", variable=self.var_E2, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkbox_width=14, checkbox_height=14, border_width=2, corner_radius=5)
+        self.chk_E2 = ctk.CTkCheckBox(row_pb1, text="PB 50", variable=self.var_E2, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
         self.chk_E2.grid(row=0, column=1, sticky="w")
 
         row_pb2 = ctk.CTkFrame(self.card_E, fg_color="transparent")
@@ -804,10 +894,10 @@ class ToolLDPlayerGUI(ctk.CTk):
         row_pb2.grid_columnconfigure(0, weight=0, minsize=65)
         row_pb2.grid_columnconfigure(1, weight=1)
 
-        self.chk_E3 = ctk.CTkCheckBox(row_pb2, text="PB 80", variable=self.var_E3, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkbox_width=14, checkbox_height=14, border_width=2, corner_radius=5)
+        self.chk_E3 = ctk.CTkCheckBox(row_pb2, text="PB 80", variable=self.var_E3, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
         self.chk_E3.grid(row=0, column=0, sticky="w")
 
-        self.chk_E4 = ctk.CTkCheckBox(row_pb2, text="PB 110", variable=self.var_E4, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkbox_width=14, checkbox_height=14, border_width=2, corner_radius=5)
+        self.chk_E4 = ctk.CTkCheckBox(row_pb2, text="PB 110", variable=self.var_E4, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
         self.chk_E4.grid(row=0, column=1, sticky="w")
 
         # ------------------- CARD 2: BOSS THẾ GIỚI (Cột 1, Row 0) -------------------
@@ -821,15 +911,24 @@ class ToolLDPlayerGUI(ctk.CTk):
         hdr_C = ctk.CTkFrame(self.card_C, fg_color="transparent")
         hdr_C.grid(row=0, column=0, padx=8, pady=(6, 2), sticky="ew")
         hdr_C.grid_columnconfigure(0, weight=1)
+        hdr_C.grid_columnconfigure(1, weight=0)
+        hdr_C.grid_columnconfigure(2, weight=0)
 
         lbl_C = ctk.CTkLabel(hdr_C, text="BOSS THẾ GIỚI", font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), text_color="#FBBF24")
         lbl_C.grid(row=0, column=0, sticky="w")
+
+        self.chk_pause_C = ctk.CTkCheckBox(
+            hdr_C, text="Tạm Dừng", variable=self.var_pause_C, command=self._on_pause_C_toggled,
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
+            fg_color="#EF4444", hover_color="#DC2626", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=8
+        )
+        self.chk_pause_C.grid(row=0, column=1, sticky="e", padx=(0, 6))
 
         self.switch_C = ctk.CTkSwitch(
             hdr_C, text="", variable=self.var_switch_C, command=self._on_switch_C_toggled,
             width=36, height=18, switch_width=36, switch_height=18, fg_color="#374151", progress_color="#D97706"
         )
-        self.switch_C.grid(row=0, column=1, sticky="e")
+        self.switch_C.grid(row=0, column=2, sticky="e")
 
         # Bảng chứa Boss & Vé được sắp xếp cân đối
         grid_C_body = ctk.CTkFrame(self.card_C, fg_color="transparent")
@@ -852,7 +951,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
             dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
             height=24,
-            width=115,
+            width=100,
             fg_color="#374151",
             button_color="#4B5563",
             button_hover_color="#6B7280",
@@ -916,21 +1015,30 @@ class ToolLDPlayerGUI(ctk.CTk):
         hdr_B = ctk.CTkFrame(self.card_B, fg_color="transparent")
         hdr_B.grid(row=0, column=0, padx=8, pady=(6, 2), sticky="ew")
         hdr_B.grid_columnconfigure(0, weight=1)
+        hdr_B.grid_columnconfigure(1, weight=0)
+        hdr_B.grid_columnconfigure(2, weight=0)
 
         lbl_B = ctk.CTkLabel(hdr_B, text="DỊ GIỚI", font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), text_color="#34D399")
         lbl_B.grid(row=0, column=0, sticky="w")
+
+        self.chk_pause_B = ctk.CTkCheckBox(
+            hdr_B, text="Tạm Dừng", variable=self.var_pause_B, command=self._on_pause_B_toggled,
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
+            fg_color="#EF4444", hover_color="#DC2626", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=8
+        )
+        self.chk_pause_B.grid(row=0, column=1, sticky="e", padx=(0, 6))
 
         self.switch_B = ctk.CTkSwitch(
             hdr_B, text="", variable=self.var_switch_B, command=self._on_switch_B_toggled,
             width=36, height=18, switch_width=36, switch_height=18, fg_color="#374151", progress_color="#059669"
         )
-        self.switch_B.grid(row=0, column=1, sticky="e")
+        self.switch_B.grid(row=0, column=2, sticky="e")
 
         # Row 1: Phúc Thần + ( OFF / ON )
         row_B1 = ctk.CTkFrame(self.card_B, fg_color="transparent")
-        row_B1.grid(row=1, column=0, padx=6, pady=1, sticky="ew")
+        row_B1.grid(row=1, column=0, padx=6, pady=2, sticky="ew")
 
-        self.chk_B1 = ctk.CTkCheckBox(row_B1, text="Phúc Thần", variable=self.var_B1, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"), fg_color="#059669", hover_color="#047857", checkbox_width=15, checkbox_height=15, border_width=2, corner_radius=5)
+        self.chk_B1 = ctk.CTkCheckBox(row_B1, text="Phúc Thần", variable=self.var_B1, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"), fg_color="#059669", hover_color="#047857", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
         self.chk_B1.pack(side="left")
 
         lbl_B1_tag = ctk.CTkLabel(row_B1, text="( OFF / ON )", font=ctk.CTkFont(family="Segoe UI", size=8, weight="normal"), text_color="gray60")
@@ -938,9 +1046,9 @@ class ToolLDPlayerGUI(ctk.CTk):
 
         # Row 2: Ký Lục + ( OFF / ON )
         row_B2 = ctk.CTkFrame(self.card_B, fg_color="transparent")
-        row_B2.grid(row=2, column=0, padx=6, pady=1, sticky="ew")
+        row_B2.grid(row=2, column=0, padx=6, pady=2, sticky="ew")
 
-        self.chk_B2 = ctk.CTkCheckBox(row_B2, text="Ký Lục", variable=self.var_B2, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"), fg_color="#059669", hover_color="#047857", checkbox_width=15, checkbox_height=15, border_width=2, corner_radius=5)
+        self.chk_B2 = ctk.CTkCheckBox(row_B2, text="Ký Lục", variable=self.var_B2, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"), fg_color="#059669", hover_color="#047857", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
         self.chk_B2.pack(side="left")
 
         lbl_B2_tag = ctk.CTkLabel(row_B2, text="( OFF / ON )", font=ctk.CTkFont(family="Segoe UI", size=8, weight="normal"), text_color="gray60")
@@ -948,9 +1056,9 @@ class ToolLDPlayerGUI(ctk.CTk):
 
         # Row 3: Rút Gọn + ( OFF / ON )
         row_B3 = ctk.CTkFrame(self.card_B, fg_color="transparent")
-        row_B3.grid(row=3, column=0, padx=6, pady=1, sticky="ew")
+        row_B3.grid(row=3, column=0, padx=6, pady=2, sticky="ew")
 
-        self.chk_B3 = ctk.CTkCheckBox(row_B3, text="Rút Gọn", variable=self.var_B3, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"), fg_color="#059669", hover_color="#047857", checkbox_width=15, checkbox_height=15, border_width=2, corner_radius=5)
+        self.chk_B3 = ctk.CTkCheckBox(row_B3, text="Rút Gọn", variable=self.var_B3, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"), fg_color="#059669", hover_color="#047857", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
         self.chk_B3.pack(side="left")
 
         lbl_B3_tag = ctk.CTkLabel(row_B3, text="( OFF / ON )", font=ctk.CTkFont(family="Segoe UI", size=8, weight="normal"), text_color="gray60")
@@ -958,9 +1066,9 @@ class ToolLDPlayerGUI(ctk.CTk):
 
         # Row 4: Dị Giới Đêm
         row_B4 = ctk.CTkFrame(self.card_B, fg_color="transparent")
-        row_B4.grid(row=4, column=0, padx=6, pady=(0, 6), sticky="ew")
+        row_B4.grid(row=4, column=0, padx=6, pady=(2, 6), sticky="ew")
 
-        self.chk_B4 = ctk.CTkCheckBox(row_B4, text="Dị Giới Đêm", variable=self.var_B4, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"), fg_color="#059669", hover_color="#047857", checkbox_width=15, checkbox_height=15, border_width=2, corner_radius=5)
+        self.chk_B4 = ctk.CTkCheckBox(row_B4, text="Dị Giới Đêm", variable=self.var_B4, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"), fg_color="#059669", hover_color="#047857", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
         self.chk_B4.pack(side="left")
 
         # ------------------- CARD 4: TỔ ĐỘI (Cột 0, Row 1) -------------------
@@ -1002,45 +1110,64 @@ class ToolLDPlayerGUI(ctk.CTk):
         hdr_D = ctk.CTkFrame(self.card_D, fg_color="transparent")
         hdr_D.grid(row=0, column=0, padx=8, pady=(6, 2), sticky="ew")
         hdr_D.grid_columnconfigure(0, weight=1)
+        hdr_D.grid_columnconfigure(1, weight=0)
+        hdr_D.grid_columnconfigure(2, weight=0)
 
         lbl_D = ctk.CTkLabel(hdr_D, text="40 NPC", font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), text_color="#F87171")
         lbl_D.grid(row=0, column=0, sticky="w")
+
+        # Nút/ô tích Dừng hoạt động kế bên công tắc (tích vào thì dừng, nhả ra chạy tiếp)
+        self.chk_pause_D = ctk.CTkCheckBox(
+            hdr_D, text="Tạm Dừng", variable=self.var_pause_D, command=self._on_pause_D_toggled,
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
+            fg_color="#EF4444", hover_color="#DC2626", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=8
+        )
+        self.chk_pause_D.grid(row=0, column=1, sticky="e", padx=(0, 6))
 
         self.switch_D = ctk.CTkSwitch(
             hdr_D, text="", variable=self.var_switch_D, command=self._on_switch_D_toggled,
             width=36, height=18, switch_width=36, switch_height=18, fg_color="#374151", progress_color="#DC2626"
         )
-        self.switch_D.grid(row=0, column=1, sticky="e")
+        self.switch_D.grid(row=0, column=2, sticky="e")
 
         grid_D_body = ctk.CTkFrame(self.card_D, fg_color="transparent")
         grid_D_body.grid(row=1, column=0, padx=6, pady=(4, 6), sticky="nsew")
         grid_D_body.grid_columnconfigure(0, weight=0, minsize=65)
         grid_D_body.grid_columnconfigure(1, weight=1)
-        grid_D_body.grid_rowconfigure((0, 1, 2, 3), weight=1)
+        grid_D_body.grid_rowconfigure((0, 1, 2), weight=1)
 
-        # 1. Khu - menu drop Số Thứ Tự (Cố Định, 1..10)
+        # 1. Di Chuyển - menu drop Số Thứ Tự (Cố Định, Khu 1..Khu 10)
         self.chk_D1 = ctk.CTkCheckBox(
-            grid_D_body, text="Khu", variable=self.var_D1, command=self._on_checkbox_toggled,
+            grid_D_body, text="Di Chuyển", variable=self.var_D1, command=self._on_checkbox_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
             fg_color="#DC2626", hover_color="#B91C1C", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
         )
         self.chk_D1.grid(row=0, column=0, sticky="w", pady=4)
 
-        khu_options = ["Cố Định"] + [str(i) for i in range(1, 11)]
+        box_D_khu = ctk.CTkFrame(grid_D_body, fg_color="transparent")
+        box_D_khu.grid(row=0, column=1, sticky="ew", pady=4)
+
+        khu_options = ["Cố Định"] + [f"Khu {i}" for i in range(1, 11)]
         self.combo_D_khu = ctk.CTkOptionMenu(
-            grid_D_body,
+            box_D_khu,
             values=khu_options,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
             dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
             height=24,
-            width=90,
+            width=80,
             fg_color="#374151",
             button_color="#4B5563",
             button_hover_color="#6B7280",
             command=lambda choice: self._on_checkbox_toggled()
         )
         self.combo_D_khu.set("Cố Định")
-        self.combo_D_khu.grid(row=0, column=1, sticky="w", pady=4)
+        self.combo_D_khu.pack(side="left")
+
+        self.switch_D_chuyen_khu = ctk.CTkSwitch(
+            box_D_khu, text="", variable=self.var_D_chuyen_khu, command=self._on_chk_D_chuyen_khu_toggled,
+            width=36, height=18, switch_width=36, switch_height=18, fg_color="#374151", progress_color="#DC2626"
+        )
+        self.switch_D_chuyen_khu.pack(side="right", padx=(0, 2))
 
         # 2. Tổ Đội - menu vị trí Xuất Chiến
         self.chk_D2 = ctk.CTkCheckBox(
@@ -1056,7 +1183,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
             dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
             height=24,
-            width=115,
+            width=100,
             fg_color="#374151",
             button_color="#4B5563",
             button_hover_color="#6B7280",
@@ -1065,27 +1192,16 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.combo_D_team_char.set(char_options[0] if char_options else "Xuất Chiến")
         self.combo_D_team_char.grid(row=1, column=1, sticky="w", pady=4)
 
-        # 3. Hàng 1 : Sự Kiện kích hoạt thao tác của hàng 2 menu drop Tầng
+        # 3. Tầng - menu drop Tầng (35, 36, 37, 38) đặt cùng hàng với ô check Tầng
         self.chk_D3 = ctk.CTkCheckBox(
-            grid_D_body, text="Sự Kiện", variable=self.var_D3, command=self._on_checkbox_toggled,
+            grid_D_body, text="Tầng", variable=self.var_D3, command=self._on_checkbox_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
             fg_color="#DC2626", hover_color="#B91C1C", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
         )
-        self.chk_D3.grid(row=2, column=0, columnspan=2, sticky="w", pady=4)
-
-        # Hàng 2 : Menu drop Tầng ( 35 , 36 , 37 , 38 )
-        box_tang = ctk.CTkFrame(grid_D_body, fg_color="transparent")
-        box_tang.grid(row=3, column=0, columnspan=2, sticky="w", padx=(20, 0), pady=4)
-
-        lbl_tang = ctk.CTkLabel(
-            box_tang, text="Tầng:",
-            font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
-            text_color="gray70"
-        )
-        lbl_tang.pack(side="left", padx=(0, 6))
+        self.chk_D3.grid(row=2, column=0, sticky="w", pady=4)
 
         self.combo_D_tang = ctk.CTkOptionMenu(
-            box_tang,
+            grid_D_body,
             values=["35", "36", "37", "38"],
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
             dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
@@ -1097,7 +1213,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             command=lambda choice: self._on_checkbox_toggled()
         )
         self.combo_D_tang.set("35")
-        self.combo_D_tang.pack(side="left")
+        self.combo_D_tang.grid(row=2, column=1, sticky="w", pady=4)
 
         # ------------------- CARD 6: NHỊ KIỀU (Cột 2, Row 1) -------------------
         self.card_F = ctk.CTkFrame(self.container_cfg, corner_radius=10)
@@ -1109,15 +1225,24 @@ class ToolLDPlayerGUI(ctk.CTk):
         hdr_F = ctk.CTkFrame(self.card_F, fg_color="transparent")
         hdr_F.grid(row=0, column=0, padx=8, pady=(6, 2), sticky="ew")
         hdr_F.grid_columnconfigure(0, weight=1)
+        hdr_F.grid_columnconfigure(1, weight=0)
+        hdr_F.grid_columnconfigure(2, weight=0)
 
         lbl_F = ctk.CTkLabel(hdr_F, text="NHỊ KIỀU", font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), text_color="#22D3EE")
         lbl_F.grid(row=0, column=0, sticky="w")
+
+        self.chk_pause_F = ctk.CTkCheckBox(
+            hdr_F, text="Tạm Dừng", variable=self.var_pause_F, command=self._on_pause_F_toggled,
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
+            fg_color="#EF4444", hover_color="#DC2626", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=8
+        )
+        self.chk_pause_F.grid(row=0, column=1, sticky="e", padx=(0, 6))
 
         self.switch_F = ctk.CTkSwitch(
             hdr_F, text="", variable=self.var_switch_F, command=self._on_switch_F_toggled,
             width=36, height=18, switch_width=36, switch_height=18, fg_color="#374151", progress_color="#0891B2"
         )
-        self.switch_F.grid(row=0, column=1, sticky="e")
+        self.switch_F.grid(row=0, column=2, sticky="e")
 
         self.chk_F1 = ctk.CTkCheckBox(self.card_F, text="F1", variable=self.var_F1, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0891B2", hover_color="#0E7490", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
         self.chk_F1.grid(row=1, column=0, padx=12, pady=2, sticky="w")
@@ -1234,30 +1359,6 @@ class ToolLDPlayerGUI(ctk.CTk):
                             return True
         except Exception:
             pass
-        return False
-
-    def dung_tat_ca_hoat_dong(self):
-        """Dừng khẩn cấp toàn bộ các tiến trình, luồng chạy ngầm của Tool"""
-        self.stop_requested = True
-        if hasattr(self, 'var_switch_B'):
-            self.var_switch_B.set(False)
-        self.after(0, self.save_config)
-        self.log_error("🛑 Đã bấm DỪNG KHẨN CẤP! Đang hủy tất cả hoạt động và khôi phục nút bấm...")
-        
-        # Khôi phục trạng thái giao diện lập tức
-        if hasattr(self, 'btn_enter_game'):
-            self.btn_enter_game.configure(state="normal", text="TS Origin")
-        if hasattr(self, 'btn_refresh'):
-            self.btn_refresh.configure(state="normal", text="Làm Mới")
-
-    def _should_stop_di_gioi(self) -> bool:
-        """Kiểm tra nếu người dùng đã bấm nút Dừng hoặc công tắc Card Dị Giới bị tắt"""
-        if self.stop_requested or not self.var_switch_B.get():
-            self.stop_requested = False
-            self.var_switch_B.set(False)
-            self.after(0, self.save_config)
-            self.after(0, self.log_info, "🛑 [DỊ GIỚI ĐÊM] Đã dừng toàn bộ hoạt động Card Dị Giới Đêm theo yêu cầu của nút Dừng!")
-            return True
         return False
 
     # --- QUÉT VÀ CẬP NHẬT DỮ LIỆU LDPLAYER (ASYNC) ---
@@ -1761,8 +1862,10 @@ class ToolLDPlayerGUI(ctk.CTk):
                     if not self.var_switch_E.get():
                         self.after(0, self.log_info, "🛑 [1/3] Công tắc Card Phụ Bản Đơn / Đội gạt về OFF ➔ Đã dừng thao tác Card này!")
                     else:
-                        # Thao tác xong các ô check -> Tự động nhả công tắc E về OFF
+                        # Thao tác xong các ô check -> Tự động nhả công tắc E & ô Tạm Dừng về OFF
                         self.var_switch_E.set(False)
+                        if hasattr(self, 'var_pause_E'):
+                            self.var_pause_E.set(False)
                         self.after(0, self._update_card_G_visibility)
                         self.after(0, self.save_config)
                         self.after(0, self.log_info, "✅ [1/3] Đã hoàn thành Card Phụ Bản Đơn / Đội ➔ Tự động nhả công tắc E về OFF!")
@@ -1781,8 +1884,10 @@ class ToolLDPlayerGUI(ctk.CTk):
                     if not self.var_switch_C.get():
                         self.after(0, self.log_info, "🛑 [2/3] Công tắc Card Boss Thế Giới gạt về OFF ➔ Đã dừng thao tác Card này!")
                     else:
-                        # Thao tác xong các ô check -> Tự động nhả công tắc C về OFF
+                        # Thao tác xong các ô check -> Tự động nhả công tắc C & ô Tạm Dừng về OFF
                         self.var_switch_C.set(False)
+                        if hasattr(self, 'var_pause_C'):
+                            self.var_pause_C.set(False)
                         self.after(0, self.save_config)
                         self.after(0, self.log_info, "✅ [2/3] Đã hoàn thành Card Boss Thế Giới ➔ Tự động nhả công tắc C về OFF!")
 
@@ -1800,8 +1905,10 @@ class ToolLDPlayerGUI(ctk.CTk):
                     if not self.var_switch_B.get():
                         self.after(0, self.log_info, "🛑 [3/3] Công tắc Card Dị Giới Đêm gạt về OFF ➔ Đã dừng thao tác Card này!")
                     else:
-                        # Thao tác xong các ô check -> Tự động nhả công tắc B về OFF
+                        # Thao tác xong các ô check -> Tự động nhả công tắc B & ô Tạm Dừng về OFF
                         self.var_switch_B.set(False)
+                        if hasattr(self, 'var_pause_B'):
+                            self.var_pause_B.set(False)
                         self.after(0, self.save_config)
                         self.after(0, self.log_info, "✅ [3/3] Đã hoàn thành Card Dị Giới ➔ Tự động nhả công tắc B về OFF!")
 
@@ -1823,37 +1930,143 @@ class ToolLDPlayerGUI(ctk.CTk):
             self.log_error(message)
 
     def dung_tat_ca_hoat_dong(self):
-        """Nút Dừng ở hàng KHỞI ĐỘNG & SERVER: Dừng toàn bộ các card hoạt động, dừng nút Chạy và chuyển các công tắc về OFF"""
+        """Nút Dừng ở hàng KHỞI ĐỘNG & SERVER: Dừng toàn bộ các card hoạt động, dừng nút Chạy và chuyển các công tắc về OFF & nhả các ô Tạm Dừng"""
         self.stop_requested = True
         for prefix in ["B", "C", "D", "E", "F", "G"]:
             switch_attr = f"var_switch_{prefix}"
             if hasattr(self, switch_attr):
                 getattr(self, switch_attr).set(False)
+            pause_attr = f"var_pause_{prefix}"
+            if hasattr(self, pause_attr):
+                getattr(self, pause_attr).set(False)
+        if hasattr(self, 'var_D_chuyen_khu'):
+            self.var_D_chuyen_khu.set(False)
         self.save_config()
         if hasattr(self, 'btn_run'):
             self.btn_run.configure(state="normal", text="Chạy")
         if hasattr(self, 'btn_enter_game'):
             self.btn_enter_game.configure(state="normal", text="TS Origin")
-        self.after(0, self.log_info, "🛑 [DỪNG KHẨN CẤP] Đã bấm nút Dừng ➔ Dừng nút Chạy, ngắt mọi tiến trình và trả các công tắc về OFF!")
+        self.after(0, self.log_info, "🛑 [DỪNG KHẨN CẤP] Đã bấm nút Dừng ➔ Dừng nút Chạy, ngắt mọi tiến trình, trả các công tắc về OFF & nhả các ô Tạm Dừng!")
+
+    def _is_any_pause_active(self) -> bool:
+        """Kiểm tra nếu có bất kỳ nút Tạm Dừng nào của tất cả các Card đang bật, hoặc bấm Dừng tổng"""
+        if self.stop_requested:
+            return True
+        for prefix in ["B", "C", "D", "E", "F"]:
+            pause_var = getattr(self, f"var_pause_{prefix}", None)
+            if pause_var and pause_var.get():
+                return True
+        return False
+
+
 
     def _should_stop_di_gioi(self) -> bool:
-        """Kiểm tra điều kiện dừng cho Card 1 Dị Giới (bấm Dừng tổng hoặc gạt công tắc B về OFF)"""
+        """Kiểm tra điều kiện dừng / tạm dừng cho Card 1 Dị Giới (bấm Dừng tổng, gạt công tắc B về OFF, hoặc tích ô Dừng)"""
+        if self.stop_requested or not self.var_switch_B.get():
+            return True
+        if hasattr(self, 'var_pause_B') and self.var_pause_B.get():
+            self.after(0, self.log_info, "⏸️ [DỊ GIỚI] Ô Dừng đang tích ➔ Tạm dừng tiến trình (nhả ô Dừng để chạy tiếp)...")
+            while self.var_pause_B.get() and not self.stop_requested and self.var_switch_B.get():
+                time.sleep(0.5)
+            if not self.stop_requested and self.var_switch_B.get():
+                self.after(0, self.log_info, "▶️ [DỊ GIỚI] Đã nhả ô Dừng ➔ Khôi phục chạy tiếp Dị Giới!")
         return self.stop_requested or not self.var_switch_B.get()
 
     def _should_stop_card_E(self) -> bool:
-        """Kiểm tra điều kiện dừng cho Card 2 Phụ Bản Đơn/Đội (bấm Dừng tổng hoặc gạt công tắc E về OFF)"""
+        """Kiểm tra điều kiện dừng / tạm dừng cho Card 2 Phụ Bản Đơn/Đội (bấm Dừng tổng, gạt công tắc E về OFF, hoặc tích ô Dừng)"""
+        if self.stop_requested or not self.var_switch_E.get():
+            return True
+        if hasattr(self, 'var_pause_E') and self.var_pause_E.get():
+            self.after(0, self.log_info, "⏸️ [PHỤ BẢN] Ô Dừng đang tích ➔ Tạm dừng tiến trình (nhả ô Dừng để chạy tiếp)...")
+            while self.var_pause_E.get() and not self.stop_requested and self.var_switch_E.get():
+                time.sleep(0.5)
+            if not self.stop_requested and self.var_switch_E.get():
+                self.after(0, self.log_info, "▶️ [PHỤ BẢN] Đã nhả ô Dừng ➔ Khôi phục chạy tiếp Phụ Bản!")
         return self.stop_requested or not self.var_switch_E.get()
 
     def _should_stop_card_C(self) -> bool:
-        """Kiểm tra điều kiện dừng cho Card 4 Boss Thế Giới (bấm Dừng tổng hoặc gạt công tắc C về OFF)"""
+        """Kiểm tra điều kiện dừng / tạm dừng cho Card 4 Boss Thế Giới (bấm Dừng tổng, gạt công tắc C về OFF, hoặc tích ô Dừng)"""
+        if self.stop_requested or not self.var_switch_C.get():
+            return True
+        if hasattr(self, 'var_pause_C') and self.var_pause_C.get():
+            self.after(0, self.log_info, "⏸️ [BOSS THẾ GIỚI] Ô Dừng đang tích ➔ Tạm dừng tiến trình (nhả ô Dừng để chạy tiếp)...")
+            while self.var_pause_C.get() and not self.stop_requested and self.var_switch_C.get():
+                time.sleep(0.5)
+            if not self.stop_requested and self.var_switch_C.get():
+                self.after(0, self.log_info, "▶️ [BOSS THẾ GIỚI] Đã nhả ô Dừng ➔ Khôi phục chạy tiếp Boss Thế Giới!")
         return self.stop_requested or not self.var_switch_C.get()
 
-    def _should_stop_card_D(self) -> bool:
-        """Kiểm tra điều kiện dừng cho Card 5 40 NPC (bấm Dừng tổng hoặc gạt công tắc D về OFF)"""
+    def _on_chk_D_chuyen_khu_toggled(self):
+        """Callback ô check Chuyển Khu độc lập trong Card 40 NPC"""
+        self._on_checkbox_toggled()
+        if self.var_D_chuyen_khu.get():
+            self.after(0, self.log_info, "⚡ [40 NPC - CHUYỂN KHU] Tích ô Chuyển ➔ Thực thi thao tác chuyển khu không phụ thuộc công tắc chính!")
+            threading.Thread(target=self._run_independent_chuyen_khu_worker, daemon=True).start()
+        self.save_config()
+
+    def _run_independent_chuyen_khu_worker(self):
+        """Luồng độc lập thực thi chuyển khu theo Menu Khu & tự động nhả ô tích khi xong"""
+        try:
+            tab_info = self._get_selected_ld_info()
+            if not tab_info or tab_info[0] is None:
+                self.after(0, self.log_error, "⚠️ Chưa chọn Giả lập LDPlayer để Chuyển Khu!")
+                return
+
+            tab_name, tab_index = tab_info
+            dnconsole_path = os.path.join(self.ld_path, "dnconsole.exe")
+            if not os.path.exists(dnconsole_path):
+                dnconsole_path = os.path.join(self.ld_path, "ldconsole.exe")
+
+            if not os.path.exists(dnconsole_path):
+                self.after(0, self.log_error, f"⚠️ Không tìm thấy ldconsole/dnconsole tại: {self.ld_path}")
+                return
+
+            selected_khu = self.combo_D_khu.get() if hasattr(self, 'combo_D_khu') else "Cố Định"
+            if selected_khu == "Cố Định":
+                self.after(0, self.log_info, "ℹ️ [40 NPC - CHUYỂN KHU] Menu Khu đang chọn 'Cố Định' ➔ Bỏ qua thao tác chuyển khu.")
+                return
+
+            self.after(0, self.log_info, f"🚀 [40 NPC - CHUYỂN KHU] Kích hoạt chuyển sang '{selected_khu}' trên Tab '{tab_name}'...")
+            self._run_40_npc_select_khu(dnconsole_path, str(tab_index), selected_khu, ignore_main_switch=True)
+            self.after(0, self.log_info, "✅ [40 NPC - CHUYỂN KHU] Đã hoàn thành thao tác chuyển khu ➔ Tự động nhả ô tích!")
+        except Exception as e:
+            self.after(0, self.log_error, f"❌ Lỗi khi Chuyển Khu độc lập: {e}")
+        finally:
+            self.var_D_chuyen_khu.set(False)
+            self.after(0, self.save_config)
+
+    def _should_stop_card_D(self, ignore_main_switch: bool = False) -> bool:
+        """Kiểm tra điều kiện dừng / tạm dừng cho Card 5 40 NPC (bấm Dừng tổng, gạt công tắc D về OFF, hoặc tích ô Dừng)"""
+        if self.stop_requested:
+            return True
+        if ignore_main_switch:
+            if hasattr(self, 'var_D_chuyen_khu') and not self.var_D_chuyen_khu.get():
+                return True
+        else:
+            if not self.var_switch_D.get():
+                return True
+
+        if hasattr(self, 'var_pause_D') and self.var_pause_D.get():
+            self.after(0, self.log_info, "⏸️ [40 NPC] Ô Dừng đang tích ➔ Tạm dừng tiến trình (nhả ô Dừng để chạy tiếp)...")
+            while self.var_pause_D.get() and not self.stop_requested and (ignore_main_switch or self.var_switch_D.get()):
+                time.sleep(0.5)
+            if not self.stop_requested and (ignore_main_switch or self.var_switch_D.get()):
+                self.after(0, self.log_info, "▶️ [40 NPC] Đã nhả ô Dừng ➔ Khôi phục chạy tiếp 40 NPC!")
+
+        if ignore_main_switch:
+            return self.stop_requested or (hasattr(self, 'var_D_chuyen_khu') and not self.var_D_chuyen_khu.get())
         return self.stop_requested or not self.var_switch_D.get()
 
     def _should_stop_card_F(self) -> bool:
-        """Kiểm tra điều kiện dừng cho Card 6 Nhị Kiều (bấm Dừng tổng hoặc gạt công tắc F về OFF)"""
+        """Kiểm tra điều kiện dừng / tạm dừng cho Card 6 Nhị Kiều (bấm Dừng tổng, gạt công tắc F về OFF, hoặc tích ô Dừng)"""
+        if self.stop_requested or not self.var_switch_F.get():
+            return True
+        if hasattr(self, 'var_pause_F') and self.var_pause_F.get():
+            self.after(0, self.log_info, "⏸️ [NHỊ KIỀU] Ô Dừng đang tích ➔ Tạm dừng tiến trình (nhả ô Dừng để chạy tiếp)...")
+            while self.var_pause_F.get() and not self.stop_requested and self.var_switch_F.get():
+                time.sleep(0.5)
+            if not self.stop_requested and self.var_switch_F.get():
+                self.after(0, self.log_info, "▶️ [NHỊ KIỀU] Đã nhả ô Dừng ➔ Khôi phục chạy tiếp Nhị Kiều!")
         return self.stop_requested or not self.var_switch_F.get()
 
     def _handle_pipeline_stop(self):
@@ -2658,13 +2871,13 @@ class ToolLDPlayerGUI(ctk.CTk):
             selected_char_team = self.combo_E_team_char.get() if hasattr(self, 'combo_E_team_char') else "Xuất Chiến"
 
             dungeons_to_run = [
-                ("PB 20", self.var_E1, (240, 275), 55, 225),
-                ("PB 50", self.var_E2, (240, 330), 85, 225),
-                ("PB 80", self.var_E3, (240, 380), 115, 250),
-                ("PB 110", self.var_E4, (240, 435), 265, 450)
+                ("PB 20", self.var_E1, (240, 275), 55),
+                ("PB 50", self.var_E2, (240, 330), 85),
+                ("PB 80", self.var_E3, (240, 380), 115),
+                ("PB 110", self.var_E4, (240, 435), 265)
             ]
 
-            any_pb_checked = any(var_pb.get() for _, var_pb, _, _, _ in dungeons_to_run)
+            any_pb_checked = any(var_pb.get() for _, var_pb, _, _ in dungeons_to_run)
 
             if any_pb_checked:
                 self.after(0, self.log_info, f"⚙️ [Phụ Bản Đội - Cá Nhân] Có ô PB được tích ➔ Bắt đầu Bước 1 & Bước 2 (Vị trí: '{selected_char_team}')...")
@@ -2732,7 +2945,7 @@ class ToolLDPlayerGUI(ctk.CTk):
                     time.sleep(0.8)
 
                 # --- Bước 3: Mở Phụ Bản & Vào Phụ Bản cho từng ô tích PB ---
-                for pb_name, var_pb, (pb_x, pb_y), delay_sec, total_clicks in dungeons_to_run:
+                for pb_name, var_pb, (pb_x, pb_y), delay_sec in dungeons_to_run:
                     if var_pb.get():
                         if self._should_stop_card_E(): return
                         self.after(0, self.log_info, f"🚀 [Phụ Bản Đội - {pb_name}] Kích hoạt quy trình cho ô tích '{pb_name}'...")
@@ -2776,7 +2989,9 @@ class ToolLDPlayerGUI(ctk.CTk):
                                 self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 640 435"])
                                 time.sleep(0.8)
                             else:
-                                self.after(0, self.log_info, "ℹ️ Không khớp 'b_matkhau.png' ➔ Bỏ qua.")
+                                self.after(0, self.log_info, "ℹ️ Không thấy 'b_matkhau.png' ➔ Click (640, 435) để bỏ qua...")
+                                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 640 435"])
+                                time.sleep(0.8)
                         else:
                             self.after(0, self.log_info, "ℹ️ Ô 'Tổ Đội' được tích chọn ➔ Bỏ qua toàn bộ thao tác khóa mật khẩu.")
 
@@ -2793,14 +3008,15 @@ class ToolLDPlayerGUI(ctk.CTk):
                             time.sleep(1.0)
 
                         if self._should_stop_card_E(): return
-                        self.after(0, self.log_info, f"⏳ [{pb_name}] Hoãn {delay_sec} giây & click liên tục Auto Đánh (1165, 210) mỗi 0.8s (tổng {total_clicks} lần)...")
-                        for _ in range(total_clicks):
+                        self.after(0, self.log_info, f"⏳ [{pb_name}] Chờ thời gian nạp {delay_sec}s & click Auto Đánh (1165, 210) mỗi 0.3s...")
+                        start_wait = time.time()
+                        while time.time() - start_wait < delay_sec:
                             if self._should_stop_card_E(): return
                             self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1165 210"])
-                            time.sleep(0.8)
+                            time.sleep(0.3)
 
                         if self._should_stop_card_E(): return
-                        self.after(0, self.log_info, f"👁️ [{pb_name}] Quét tìm nút Xác Nhận 'card_b/b_xn.png' mỗi 3s (vẫn tiếp tục click Auto (1165, 210) mỗi 0.8s)...")
+                        self.after(0, self.log_info, f"👁️ [{pb_name}] Hết {delay_sec}s chờ nạp ➔ Quét tìm nút Xác Nhận 'card_b/b_xn.png' & tiếp tục click Auto (1165, 210) mỗi 0.3s...")
                         xn_x, xn_y = None, None
                         while not self._should_stop_card_E():
                             xn_x, xn_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_xn.png", threshold=0.85)
@@ -2808,11 +3024,8 @@ class ToolLDPlayerGUI(ctk.CTk):
                                 self.after(0, self.log_info, f"🎯 Mắt thần phát hiện ảnh 'card_b/b_xn.png' tại ({xn_x}, {xn_y})!")
                                 break
 
-                            # Click liên tục trong 3s (vòng lặp 3.0s / 0.8s = ~4 lần)
-                            for _ in range(4):
-                                if self._should_stop_card_E(): break
-                                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1165 210"])
-                                time.sleep(0.8)
+                            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1165 210"])
+                            time.sleep(0.3)
 
                         if self._should_stop_card_E(): return
                         if xn_x is not None and xn_y is not None:
@@ -2831,9 +3044,10 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.after(0, self.log_info, "✅ [1/6: PHỤ BẢN ĐƠN / ĐỘI] Đã thực thi hoàn tất! (Tự động tắt công tắc ON/OFF & giữ nguyên các ô tích)")
 
     def _execute_card_G_phu_ban_don(self, dnconsole_path: str, tab_name: str, tab_index: str):
-        """Thực thi Card 3: TỔ ĐỘI (G) - Quản lý bởi ô check 'Tổ Đội' ở Card Phụ Bản Đội/Đơn"""
-        if not self.var_E_doi.get():
-            self.after(0, self.log_info, "ℹ️ [3/6: TỔ ĐỘI] Ô check 'Tổ Đội' ở Card Phụ Bản Đội/Đơn đang TẮT (OFF) -> Bỏ qua Card 3.")
+        """Thực thi Card 3: TỔ ĐỘI (G) - Quản lý bởi ô check 'Tổ Đội' ở Card E hoặc Card 40 NPC (D)"""
+        is_doi_active = (hasattr(self, 'var_E_doi') and self.var_E_doi.get()) or (hasattr(self, 'var_D2') and self.var_D2.get())
+        if not is_doi_active:
+            self.after(0, self.log_info, "ℹ️ [3/6: TỔ ĐỘI] Ô check 'Tổ Đội' ở cả Card Phụ Bản Đội/Đơn và Card 40 NPC đang TẮT (OFF) -> Bỏ qua Card Tổ Đội.")
             return
 
         checked = [
@@ -2963,7 +3177,25 @@ class ToolLDPlayerGUI(ctk.CTk):
             time.sleep(3.0)
             return True
         else:
-            self.after(0, self.log_info, "ℹ️ Không tìm thấy 'card_c/c_dichuyen.png' ➔ Chuyển qua PHẦN 3: DI CHUYỂN.")
+            self.after(0, self.log_info, "ℹ️ Không thấy 'c_dichuyen.png' (hoặc nút bị Tối/Mờ) ➔ Quét tìm nút 'login_x.png' (75%)...")
+            lx_x, lx_y = self._find_template_on_screen(dnconsole_path, tab_index, "login_x.png", threshold=0.75)
+            if lx_x is not None and lx_y is not None:
+                self.after(0, self.log_info, f"🎯 Phát hiện 'login_x.png' tại ({lx_x}, {lx_y})! Tap click đóng cửa sổ...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {lx_x} {lx_y}"])
+                time.sleep(1.0)
+
+            if self._should_stop_card_C(): return False
+            self.after(0, self.log_info, "👁️ Quét tìm nút Vị Trí 'a_vitri.png' (85%)...")
+            v_x, v_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_vitri.png", threshold=0.85)
+            if v_x is not None and v_y is not None:
+                self.after(0, self.log_info, f"🎯 Phát hiện nút 'a_vitri.png' tại ({v_x}, {v_y}) ➔ Click nút xanh lá góc dưới phải (1213, 648)...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1213 648"])
+                time.sleep(1.0)
+            else:
+                self.after(0, self.log_info, "ℹ️ Chưa thấy nút 'a_vitri.png' ➔ Bỏ qua.")
+
+            time.sleep(1.0)
+            self.after(0, self.log_info, "ℹ️ Chuyển qua PHẦN 3: DI CHUYỂN.")
             return False
 
     def _run_boss_workflow(self, dnconsole_path: str, tab_name: str, tab_index: str, max_turns: int = 5, skip_move: bool = False):
@@ -3106,13 +3338,13 @@ class ToolLDPlayerGUI(ctk.CTk):
 
             # 3. Cuộn tìm Vé Boss (tại tọa độ 920, 270)
             if self._should_stop_card_C(): return
-            self.after(0, self.log_info, "📜 [Vé - Bước 3] Cuộn tìm ảnh Vé Boss 'card_c/c_veboss.png' (85%)...")
+            self.after(0, self.log_info, "📜 [Vé - Bước 3] Cuộn tìm ảnh Vé Boss 'card_c/c_veboss.png' (70%)...")
             veboss_x, veboss_y = None, None
             
             # Thao tác cuộn xuống từ từ tại (920, 270)
-            for swipe_down_cnt in range(15):
+            for swipe_down_cnt in range(5):
                 if self._should_stop_card_C(): break
-                veboss_x, veboss_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_veboss.png", threshold=0.85)
+                veboss_x, veboss_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_veboss.png", threshold=0.70)
                 if veboss_x is not None and veboss_y is not None:
                     self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_c/c_veboss.png' tại ({veboss_x}, {veboss_y})!")
                     break
@@ -3121,19 +3353,19 @@ class ToolLDPlayerGUI(ctk.CTk):
                 if khoa_x is not None and khoa_y is not None:
                     self.after(0, self.log_info, f"🔒 Phát hiện 'card_c/c_khoa.png' tại ({khoa_x}, {khoa_y}) nhưng chưa thấy Vé Boss ➔ Dừng cuộn xuống, chuyển sang cuộn ngược lên...")
                     break
-                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input swipe 920 400 920 180 500"])
-                time.sleep(0.8)
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input swipe 920 400 920 180 1000"])
+                time.sleep(1.0)
 
-            # Nếu gặp c_khoa hoặc chưa thấy veboss -> Cuộn ngược lên lại 10 lần cho đến khi thấy card_c/c_veboss.png
+            # Nếu gặp c_khoa hoặc chưa thấy veboss -> Cuộn ngược lên lại 5 lần tại tọa độ điểm (920, 535) cho đến khi thấy card_c/c_veboss.png
             if veboss_x is None or veboss_y is None:
-                for swipe_up_cnt in range(10):
+                for swipe_up_cnt in range(5):
                     if self._should_stop_card_C(): break
-                    veboss_x, veboss_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_veboss.png", threshold=0.85)
+                    veboss_x, veboss_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_veboss.png", threshold=0.70)
                     if veboss_x is not None and veboss_y is not None:
                         self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_c/c_veboss.png' tại ({veboss_x}, {veboss_y})!")
                         break
-                    self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input swipe 920 180 920 400 500"])
-                    time.sleep(0.8)
+                    self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input swipe 920 180 920 535 1000"])
+                    time.sleep(1.0)
 
             if veboss_x is not None and veboss_y is not None:
                 self.after(0, self.log_info, f"👉 Click vào ảnh Vé Boss tại ({veboss_x}, {veboss_y}) ➔ Click (755, 460) ➔ Click (320, 25)...")
@@ -3290,6 +3522,404 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.after(0, self.save_config)
         self.after(0, self.log_info, "✅ [2/6: BOSS THẾ GIỚI] Đã thực thi hoàn tất quy trình! (Tự động tắt công tắc ON/OFF & giữ nguyên các ô tích)")
 
+    def _run_40_npc_safezone(self, dnconsole_path: str, tab_index: str) -> bool:
+        """PHẦN 1: QUY TRÌNH VỀ KHU AN TOÀN CỦA 40 NPC. Trả về True nếu khớp card_d/d_quangtruong.png"""
+        if self._should_stop_card_D(): return False
+
+        # 1. Đóng quảng cáo/thông báo
+        self.after(0, self.log_info, "👁️ [40 NPC - Phần 1.1] Quét tìm nút 'login_x.png' (75%)...")
+        lx_x, lx_y = self._find_template_on_screen(dnconsole_path, tab_index, "login_x.png", threshold=0.75)
+        if lx_x is not None and lx_y is not None:
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'login_x.png' tại ({lx_x}, {lx_y})! Click chọn ➔ Hoãn 1.0s...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {lx_x} {lx_y}"])
+            time.sleep(1.0)
+
+        # 2. Quét ảnh card_d/d_quangtruong.png (ngưỡng 75%)
+        if self._should_stop_card_D(): return False
+        self.after(0, self.log_info, "👁️ [40 NPC - Phần 1.2] Quét nhận diện ảnh Quảng Trường 'card_d/d_quangtruong.png' (75%)...")
+        qt_x, qt_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_d/d_quangtruong.png", threshold=0.75)
+        if qt_x is not None and qt_y is not None:
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_d/d_quangtruong.png' tại ({qt_x}, {qt_y}) (Đã ở Quảng Trường) ➔ Bỏ qua thao tác Di Chuyển & chuyển thẳng đến menu chọn Khu!")
+            return True
+
+        # 3. Mở bảng Vị Trí
+        if self._should_stop_card_D(): return False
+        self.after(0, self.log_info, "👁️ [40 NPC - Phần 1.3] Quét tìm nút Vị Trí 'a_vitri.png' (85%)...")
+        v_x, v_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_vitri.png", threshold=0.85)
+        if v_x is not None and v_y is not None:
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'a_vitri.png' tại ({v_x}, {v_y})! Tap click chọn...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {v_x} {v_y}"])
+            time.sleep(1.0)
+        else:
+            self.after(0, self.log_info, "👉 Chưa thấy 'a_vitri.png' ➔ Click nút xanh lá góc dưới phải (1213, 648) mở menu...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1213 648"])
+            time.sleep(1.2)
+            if self._should_stop_card_D(): return False
+            v_x, v_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_vitri.png", threshold=0.85)
+            if v_x is not None and v_y is not None:
+                self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'a_vitri.png' tại ({v_x}, {v_y})! Tap click chọn...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {v_x} {v_y}"])
+                time.sleep(1.0)
+            else:
+                self.after(0, self.log_info, "⚠️ Chưa quét thấy biểu tượng 'a_vitri.png' trong bảng menu.")
+
+        # 4. Về Khu An Toàn
+        if self._should_stop_card_D(): return False
+        self.after(0, self.log_info, "👉 [40 NPC - Phần 1.4] Click liên tục (435, 250) mỗi 0.5s cho tới khi xuất hiện nút Có 'card_c/c_co.png' (85%)...")
+        while not self._should_stop_card_D():
+            co_x, co_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_co.png", threshold=0.85)
+            if co_x is not None and co_y is not None:
+                self.after(0, self.log_info, f"🎯 Mắt thần phát hiện nút Có 'card_c/c_co.png' tại ({co_x}, {co_y})! Dừng click (435, 250).")
+                break
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 435 250"])
+            time.sleep(0.5)
+
+        if self._should_stop_card_D(): return False
+        self.after(0, self.log_info, "👁️ [40 NPC - Phần 1.4] Click liên tục nút Có 'card_c/c_co.png' (0.5s mỗi lần) cho tới khi hết ảnh...")
+        while not self._should_stop_card_D():
+            co_x, co_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_co.png", threshold=0.85)
+            if co_x is not None and co_y is not None:
+                self.after(0, self.log_info, f"🎯 Phát hiện nút Có 'card_c/c_co.png' tại ({co_x}, {co_y}) ➔ Click vào vị trí ảnh...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {co_x} {co_y}"])
+                time.sleep(0.5)
+            else:
+                self.after(0, self.log_info, "ℹ️ Không còn thấy ảnh nút Có 'card_c/c_co.png' ➔ Tạm nghỉ 3.0s...")
+                break
+
+        if self._should_stop_card_D(): return False
+        time.sleep(3.0)
+
+        # 5. Thu gọn menu
+        if self._should_stop_card_D(): return False
+        self.after(0, self.log_info, "👁️ [40 NPC - Phần 1.5] Quét kiểm tra lại nút 'a_vitri.png' (85%)...")
+        v_check_x, v_check_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_vitri.png", threshold=0.85)
+        if v_check_x is not None and v_check_y is not None:
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'a_vitri.png' vẫn còn tại ({v_check_x}, {v_check_y}) ➔ Click (1213, 648) để thu gọn menu...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1213 648"])
+            time.sleep(1.0)
+        else:
+            self.after(0, self.log_info, "ℹ️ Không thấy nút 'a_vitri.png' ➔ Bỏ qua thu gọn menu.")
+
+        return False
+
+    def _run_40_npc_move_quang_truong(self, dnconsole_path: str, tab_index: str):
+        """PHẦN 2: DI CHUYỂN ĐẾN QUẢNG TRƯỜNG (KHI Ô DI CHUYỂN ĐƯỢC TÍCH)"""
+        if self._should_stop_card_D(): return
+
+        self.after(0, self.log_info, "🚀 [40 NPC - Phần 2] Bắt đầu quy trình di chuyển đến Quảng Trường...")
+
+        # 1. Tap (1000, 130) nghỉ 5s
+        if self._should_stop_card_D(): return
+        self.after(0, self.log_info, "👉 1. Tap (1000, 130) ➔ Nghỉ 5s...")
+        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1000 130"])
+        for _ in range(5):
+            if self._should_stop_card_D(): return
+            time.sleep(1.0)
+
+        # 2. Tap (120, 230) nghỉ 3s
+        if self._should_stop_card_D(): return
+        self.after(0, self.log_info, "👉 2. Tap (120, 230) ➔ Nghỉ 3s...")
+        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 120 230"])
+        for _ in range(3):
+            if self._should_stop_card_D(): return
+            time.sleep(1.0)
+
+        # 3. Tap (275, 125) nghỉ 2s
+        if self._should_stop_card_D(): return
+        self.after(0, self.log_info, "👉 3. Tap (275, 125) ➔ Nghỉ 2s...")
+        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 275 125"])
+        for _ in range(2):
+            if self._should_stop_card_D(): return
+            time.sleep(1.0)
+
+        # 4. Quét nhận diện ảnh card_d/d_cong.png và click vào ảnh (threshold=0.7) nghỉ 3s
+        if self._should_stop_card_D(): return
+        self.after(0, self.log_info, "👁️ 4. Quét nhận diện ảnh 'card_d/d_cong.png' (70%)...")
+        cg_x, cg_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_d/d_cong.png", threshold=0.70)
+        if cg_x is not None and cg_y is not None:
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_d/d_cong.png' tại ({cg_x}, {cg_y})! Click chọn ➔ Nghỉ 3s...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {cg_x} {cg_y}"])
+        else:
+            self.after(0, self.log_info, "ℹ️ Chưa thấy ảnh 'card_d/d_cong.png' ➔ Nghỉ 3s...")
+        for _ in range(3):
+            if self._should_stop_card_D(): return
+            time.sleep(1.0)
+
+        # 5. Tap (560, 455) nghỉ 4s
+        if self._should_stop_card_D(): return
+        self.after(0, self.log_info, "👉 5. Tap (560, 455) ➔ Nghỉ 4s...")
+        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 560 455"])
+        for _ in range(4):
+            if self._should_stop_card_D(): return
+            time.sleep(1.0)
+
+        # 6. Tap (135, 295) nghỉ 3s
+        if self._should_stop_card_D(): return
+        self.after(0, self.log_info, "👉 6. Tap (135, 295) ➔ Nghỉ 3s...")
+        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 135 295"])
+        for _ in range(3):
+            if self._should_stop_card_D(): return
+            time.sleep(1.0)
+
+        # 7. Quét nhận diện ảnh card_d/d_cong.png và click vào ảnh (threshold=0.7) nghỉ 5s
+        if self._should_stop_card_D(): return
+        self.after(0, self.log_info, "👁️ 7. Quét nhận diện ảnh 'card_d/d_cong.png' lần 2 (70%)...")
+        cg_x2, cg_y2 = self._find_template_on_screen(dnconsole_path, tab_index, "card_d/d_cong.png", threshold=0.70)
+        if cg_x2 is not None and cg_y2 is not None:
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_d/d_cong.png' tại ({cg_x2}, {cg_y2})! Click chọn ➔ Nghỉ 5s...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {cg_x2} {cg_y2}"])
+        else:
+            self.after(0, self.log_info, "ℹ️ Chưa thấy ảnh 'card_d/d_cong.png' ➔ Nghỉ 5s...")
+        for _ in range(5):
+            if self._should_stop_card_D(): return
+            time.sleep(1.0)
+
+        # 8. Tap (215, 505) nghỉ 5s
+        if self._should_stop_card_D(): return
+        self.after(0, self.log_info, "👉 8. Tap (215, 505) ➔ Nghỉ 5s...")
+        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 215 505"])
+        for _ in range(5):
+            if self._should_stop_card_D(): return
+            time.sleep(1.0)
+
+    def _run_40_npc_select_khu(self, dnconsole_path: str, tab_index: str, selected_khu: str, ignore_main_switch: bool = False):
+        """PHẦN 3: CHỌN VỊ TRÍ THEO MENU KHU"""
+        if self._should_stop_card_D(ignore_main_switch): return
+
+        if selected_khu == "Cố Định":
+            self.after(0, self.log_info, "ℹ️ [40 NPC - Phần 3] Menu Khu chọn 'Cố Định' ➔ Chuyển thẳng xuống Phần 4.")
+            return
+
+        self.after(0, self.log_info, f"🚀 [40 NPC - Phần 3] Bắt đầu quy trình chọn '{selected_khu}'...")
+
+        # 1. Quét nhận diện ảnh card_d/d_quangtruong.png và click vào ảnh (threshold=0.85) nghỉ 1s
+        if self._should_stop_card_D(ignore_main_switch): return
+        self.after(0, self.log_info, "👁️ [40 NPC - Phần 3] Quét ảnh Quảng Trường 'card_d/d_quangtruong.png' (85%)...")
+        qt_x, qt_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_d/d_quangtruong.png", threshold=0.85)
+        if qt_x is not None and qt_y is not None:
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_d/d_quangtruong.png' tại ({qt_x}, {qt_y})! Tap click ➔ Nghỉ 1.0s...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {qt_x} {qt_y}"])
+            time.sleep(1.0)
+        else:
+            self.after(0, self.log_info, "ℹ️ Không tìm thấy ảnh 'card_d/d_quangtruong.png' trên màn hình.")
+
+        # X định file ảnh khu target
+        khu_num_match = re.search(r'\d+', selected_khu)
+        khu_num = khu_num_match.group(0) if khu_num_match else "1"
+        target_khu_img = f"khu/khu_{khu_num}.png"
+
+        self.after(0, self.log_info, f"📜 [40 NPC - Phần 3] Cuộn tìm ảnh khu mục tiêu '{target_khu_img}' (85%)...")
+        found_khu_x, found_khu_y = None, None
+
+        # Vòng lặp tổng tìm kiếm khu (Tối đa 5 chu trình cuộn xuống ➔ cuộn lên)
+        for cycle in range(5):
+            if self._should_stop_card_D(ignore_main_switch): break
+
+            # a. Cuộn chậm xuống tại tọa độ (635, 195) - chỉ cuộn không click
+            self.after(0, self.log_info, f"📜 [Chu trình {cycle+1}/5] Cuộn xuống tại điểm (635, 195) tìm ảnh khu...")
+            for swipe_down_cnt in range(10):
+                if self._should_stop_card_D(ignore_main_switch): break
+                found_khu_x, found_khu_y = self._find_template_on_screen(dnconsole_path, tab_index, target_khu_img, threshold=0.85)
+                if found_khu_x is not None and found_khu_y is not None:
+                    self.after(0, self.log_info, f"🎯 Mắt thần phát hiện ảnh khu mục tiêu '{target_khu_img}' tại ({found_khu_x}, {found_khu_y})!")
+                    break
+
+                # Kiểm tra nếu thấy khu_10.png thì dừng cuộn xuống
+                k10_x, k10_y = self._find_template_on_screen(dnconsole_path, tab_index, "khu/khu_10.png", threshold=0.85)
+                if k10_x is not None and k10_y is not None:
+                    self.after(0, self.log_info, f"📍 Phát hiện mốc 'khu/khu_10.png' tại ({k10_x}, {k10_y}) ➔ Dừng cuộn xuống, chuyển sang cuộn ngược lên...")
+                    break
+
+                # Cuộn chậm xuống tại tọa độ (635, 195)
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input swipe 635 400 635 195 1000"])
+                time.sleep(1.0)
+
+            if found_khu_x is not None and found_khu_y is not None:
+                break
+
+            # b. Cuộn ngược lên lại tại tọa độ (635, 525) tối đa 5 lần
+            if self._should_stop_card_D(ignore_main_switch): break
+            self.after(0, self.log_info, f"📜 [Chu trình {cycle+1}/5] Cuộn ngược lên tại điểm (635, 525) tìm '{target_khu_img}'...")
+            for swipe_up_cnt in range(5):
+                if self._should_stop_card_D(ignore_main_switch): break
+                found_khu_x, found_khu_y = self._find_template_on_screen(dnconsole_path, tab_index, target_khu_img, threshold=0.85)
+                if found_khu_x is not None and found_khu_y is not None:
+                    self.after(0, self.log_info, f"🎯 Mắt thần phát hiện ảnh khu mục tiêu '{target_khu_img}' tại ({found_khu_x}, {found_khu_y})!")
+                    break
+
+                # Cuộn ngược lên tại tọa độ (635, 525)
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input swipe 635 195 635 525 1000"])
+                time.sleep(1.0)
+
+            if found_khu_x is not None and found_khu_y is not None:
+                break
+
+        # Click vào vị trí ảnh khu đã tìm thấy & kiểm tra ảnh khu/khu_sndd.png (tương tự login_nkn.png)
+        if found_khu_x is not None and found_khu_y is not None:
+            self.after(0, self.log_info, f"👉 Click vào ảnh khu '{target_khu_img}' tại ({found_khu_x}, {found_khu_y})...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {found_khu_x} {found_khu_y}"])
+            time.sleep(1.0)
+
+            # Quét kiểm tra ảnh 'khu/khu_sndd.png' (ngưỡng 0.45 giống login_nkn.png)
+            sndd_x, sndd_y = self._find_template_on_screen(dnconsole_path, tab_index, "khu/khu_sndd.png", threshold=0.45)
+            if sndd_x is not None and sndd_y is not None:
+                self.after(0, self.log_info, f"⚠️ Click khu '{target_khu_img}' bị hiện 'khu/khu_sndd.png'! Tiếp tục click lại vào vị trí ảnh khu tối đa 30 lần cho tới khi ảnh '{target_khu_img}' biến mất...")
+                for retry in range(30):
+                    if self._should_stop_card_D(ignore_main_switch): break
+                    self.after(0, self.log_info, f"👉 [Thử lại {retry+1}/30] Click lại vào vị trí ảnh khu '{target_khu_img}' tại ({found_khu_x}, {found_khu_y})...")
+                    self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {found_khu_x} {found_khu_y}"])
+                    time.sleep(1.0)
+
+                    # Kiểm tra xem ảnh khu mục tiêu 'target_khu_img' hoặc ảnh 'khu/khu_sndd.png' đã biến mất chưa
+                    target_check_x, target_check_y = self._find_template_on_screen(dnconsole_path, tab_index, target_khu_img, threshold=0.85)
+                    sndd_check_x, sndd_check_y = self._find_template_on_screen(dnconsole_path, tab_index, "khu/khu_sndd.png", threshold=0.45)
+
+                    if target_check_x is None or sndd_check_x is None:
+                        self.after(0, self.log_info, f"✅ Đã chuyển sang khu '{target_khu_img}' thành công (ảnh khu '{target_khu_img}' đã biến mất khỏi giao diện)!")
+                        break
+            else:
+                self.after(0, self.log_info, f"✅ Đã kết nối chuyển khu '{target_khu_img}' thành công (không bị dính 'khu/khu_sndd.png')!")
+
+            self.after(0, self.log_info, "⏳ Hoãn 4.0s hoàn tất chuyển khu...")
+            time.sleep(4.0)
+        else:
+            self.after(0, self.log_info, f"⚠️ Sau các lần cuộn không quét thấy ảnh '{target_khu_img}'.")
+
+    def _run_40_npc_team_and_char_position(self, dnconsole_path: str, tab_index: str, selected_team_char: str, skip_char_change: bool = False):
+        """PHẦN 4: TỔ ĐỘI VÀ CHUYỂN ĐỔI VỊ TRÍ NHÂN VẬT (CHỈ THỰC THI KHỊ Ô TỔ ĐỘI VAR_D2 ĐƯỢC TÍCH HOẶC ĐƯỢC GỌI TỪ PHẦN TẦNG)"""
+        if self._should_stop_card_D(): return
+
+        if not skip_char_change and not self.var_D2.get():
+            self.after(0, self.log_info, "ℹ️ [40 NPC - Phần 4] Ô 'Tổ Đội' KHÔNG được tích -> Bỏ qua Phần 4.")
+            return
+
+        self.after(0, self.log_info, f"🚀 [40 NPC - Phần 4] Kích hoạt Tổ Đội (Vị trí: '{selected_team_char}', Bỏ qua đổi vị trí: {skip_char_change})...")
+
+        if skip_char_change or selected_team_char == "Xuất Chiến":
+            self.after(0, self.log_info, "ℹ️ Giữ nguyên vị trí nhân vật hiện tại ➔ Bỏ qua bước đổi đội hình.")
+            return
+
+        # Lựa chọn Vị Trí 1, Vị Trí 2, Vị Trí 3, Vị Trí 4:
+        # Nghỉ 3.0 giây trước khi bắt đầu
+        if self._should_stop_card_D(): return
+        self.after(0, self.log_info, "⏳ [40 NPC - Phần 4] Nghỉ 3.0 giây trước khi khởi động...")
+        for _ in range(3):
+            if self._should_stop_card_D(): return
+            time.sleep(1.0)
+
+        # Quét mở giao diện Đội
+        if self._should_stop_card_D(): return
+        self.after(0, self.log_info, "👁️ [40 NPC - Phần 4] Quét tìm ảnh 'card_b/b_doi.png' (85%)...")
+        b_doi_x, b_doi_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_doi.png", threshold=0.85)
+        if b_doi_x is not None and b_doi_y is not None:
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_b/b_doi.png' tại ({b_doi_x}, {b_doi_y})! Tap click vào ảnh...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {b_doi_x} {b_doi_y}"])
+            time.sleep(1.0)
+        else:
+            self.after(0, self.log_info, "👉 Chưa thấy 'card_b/b_doi.png' ➔ Tap nút xanh lá góc dưới phải (1213, 648) mở menu...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1213 648"])
+            time.sleep(1.2)
+            if self._should_stop_card_D(): return
+            b_doi_x, b_doi_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_b/b_doi.png", threshold=0.85)
+            if b_doi_x is not None and b_doi_y is not None:
+                self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_b/b_doi.png' tại ({b_doi_x}, {b_doi_y})! Tap click vào ảnh...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {b_doi_x} {b_doi_y}"])
+                time.sleep(1.0)
+            else:
+                self.after(0, self.log_info, "⚠️ Chưa quét thấy biểu tượng 'card_b/b_doi.png' trong bảng menu.")
+
+        # Thao tác đổi vị trí nhân vật cụ thể
+        if self._should_stop_card_D(): return
+        if selected_team_char == "Vị Trí 1":
+            self.after(0, self.log_info, "👉 [Vị Trí 1] Tap (560, 520) ➔ (560, 255) ➔ (1090, 110)...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 560 520"])
+            time.sleep(0.8)
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 560 255"])
+            time.sleep(0.8)
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1090 110"])
+            time.sleep(0.8)
+        elif selected_team_char == "Vị Trí 2":
+            self.after(0, self.log_info, "👉 [Vị Trí 2] Tap (560, 520) ➔ (560, 340) ➔ (1090, 110)...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 560 520"])
+            time.sleep(0.8)
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 560 340"])
+            time.sleep(0.8)
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1090 110"])
+            time.sleep(0.8)
+        elif selected_team_char == "Vị Trí 3":
+            self.after(0, self.log_info, "👉 [Vị Trí 3] Tap (560, 520) ➔ (560, 430) ➔ (1090, 110)...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 560 520"])
+            time.sleep(0.8)
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 560 430"])
+            time.sleep(0.8)
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1090 110"])
+            time.sleep(0.8)
+        elif selected_team_char == "Vị Trí 4":
+            self.after(0, self.log_info, "👉 [Vị Trí 4] Tap (560, 255) ➔ (560, 520) ➔ (1090, 110)...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 560 255"])
+            time.sleep(0.8)
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 560 520"])
+            time.sleep(0.8)
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1090 110"])
+            time.sleep(0.8)
+
+        # Tap (1213, 648) ➔ Hoãn 1.0s để đóng menu giao diện Đội
+        if self._should_stop_card_D(): return
+        self.after(0, self.log_info, "👉 Tap (1213, 648) ➔ Hoãn 1.0s để đóng menu giao diện Đội...")
+        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1213 648"])
+        time.sleep(1.0)
+
+    def _run_40_npc_su_kien_tang(self, dnconsole_path: str, tab_index: str, selected_tang: str, selected_team_char: str):
+        """PHẦN 5: SỰ KIỆN TẦNG (CHỈ THỰC THI KHỊ Ô SỰ KIỆN VAR_D3 ĐƯỢC TÍCH)"""
+        if self._should_stop_card_D(): return
+
+        if not self.var_D3.get():
+            self.after(0, self.log_info, "ℹ️ [40 NPC - Sự Kiện Tầng] Ô 'Sự Kiện' KHÔNG được tích -> Bỏ qua.")
+            return
+
+        self.after(0, self.log_info, f"🚀 [40 NPC - Sự Kiện Tầng] Khởi chạy ô Sự Kiện (Tầng: '{selected_tang}')...")
+
+        # 1. Đếm ngược thời gian đến 20H01 (20:01)
+        now = datetime.now()
+        target_time = now.replace(hour=20, minute=1, second=0, microsecond=0)
+        if now < target_time:
+            rem_sec = int((target_time - now).total_seconds())
+            self.after(0, self.log_info, f"⏳ [Sự Kiện Tầng] Đang đếm ngược thời gian đến 20:01 (Còn {rem_sec}s)...")
+            while datetime.now() < target_time:
+                if self._should_stop_card_D(): return
+                time.sleep(1.0)
+            self.after(0, self.log_info, "⏰ Đã đến 20:01! Tiến hành thực thi tiếp các thao tác Sự Kiện Tầng...")
+        else:
+            self.after(0, self.log_info, "⏰ Thời gian hiện tại đã qua 20:01 -> Bắt đầu thao tác Sự Kiện Tầng ngay...")
+
+        # 2. Quét card_d/d_cong.png (70%), tap ảnh ➔ Hoãn 3.0s
+        if self._should_stop_card_D(): return
+        self.after(0, self.log_info, "👁️ [Sự Kiện Tầng] Quét ảnh Cổng 'card_d/d_cong.png' (70%)...")
+        cong_x, cong_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_d/d_cong.png", threshold=0.70)
+        if cong_x is not None and cong_y is not None:
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_d/d_cong.png' tại ({cong_x}, {cong_y})! Tap click ➔ Hoãn 3.0s...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {cong_x} {cong_y}"])
+            time.sleep(3.0)
+        else:
+            self.after(0, self.log_info, "⚠️ Chưa quét thấy ảnh 'card_d/d_cong.png' trên màn hình.")
+
+        # 3. Tap (505, 635) ➔ Hoãn 4.0s để đưa nhân vật vào Lôi Đài
+        if self._should_stop_card_D(): return
+        self.after(0, self.log_info, "👉 [Sự Kiện Tầng] Tap (505, 635) ➔ Hoãn 4.0s để đưa nhân vật vào Lôi Đài...")
+        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 505 635"])
+        time.sleep(4.0)
+
+        # 4. Chạy lại thao tác ô check Tổ Đội (bỏ qua thao tác Chuyển Đổi Vị Trí Nhân Vật)
+        if self._should_stop_card_D(): return
+        self.after(0, self.log_info, "🚀 [Sự Kiện Tầng] Chạy lại thao tác ô check Tổ Đội (Bỏ qua thao tác Chuyển Đổi Vị Trí Nhân Vật)...")
+        self._run_40_npc_team_and_char_position(dnconsole_path, tab_index, selected_team_char, skip_char_change=True)
+
+        # 5. Đợi chạy xong ô check Tổ Đội thì tiếp tục thao tác tiếp theo: Tap (300, 120) ➔ Hoãn 3.0s
+        if self._should_stop_card_D(): return
+        self.after(0, self.log_info, "👉 [Sự Kiện Tầng] Tap (300, 120) ➔ Hoãn 3.0s...")
+        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 300 120"])
+        time.sleep(3.0)
+
     def _execute_card_D_40_npc(self, dnconsole_path: str, tab_name: str, tab_index: str):
         """Thực thi Card 5: 40 NPC (D)"""
         if self._should_stop_card_D():
@@ -3297,7 +3927,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             return
 
         checked = [
-            ("Khu", self.var_D1),
+            ("Di Chuyển", self.var_D1),
             ("Tổ Đội", self.var_D2),
             ("Sự Kiện", self.var_D3)
         ]
@@ -3314,17 +3944,44 @@ class ToolLDPlayerGUI(ctk.CTk):
 
         info_details = []
         if self.var_D1.get():
-            info_details.append(f"Khu (STT: '{selected_khu}')")
+            info_details.append(f"Di Chuyển (STT: '{selected_khu}')")
         if self.var_D2.get():
             info_details.append(f"Tổ Đội (Vị trí: '{selected_team_char}')")
         if self.var_D3.get():
             info_details.append(f"Sự Kiện (Tầng: '{selected_tang}')")
 
         self.after(0, self.log_info, f"▶️ [5/6: 40 NPC] Đang thực thi {len(info_details)} mục đã chọn: {', '.join(info_details)}...")
-        time.sleep(1.0)
 
-        # Tự động tắt công tắc ON/OFF (False) sau khi hoàn thành, giữ nguyên các ô check
+        # =========================================================================
+        # 📌 PHẦN 1: VỀ KHU AN TOÀN
+        # =========================================================================
+        is_already_at_quangtruong = self._run_40_npc_safezone(dnconsole_path, tab_index)
+
+        # =========================================================================
+        # 📌 PHẦN 2: DI CHUYỂN ĐẾN QUẢNG TRƯỜNG (KHI Ô VỊ TRÍ ĐƯỢC TÍCH & KHÔNG Ở QUẢNG TRƯỜNG)
+        # =========================================================================
+        if self.var_D1.get() and not is_already_at_quangtruong:
+            self._run_40_npc_move_quang_truong(dnconsole_path, tab_index)
+
+        # =========================================================================
+        # 📌 PHẦN 3: CHỌN VỊ TRÍ THEO MENU KHU
+        # =========================================================================
+        self._run_40_npc_select_khu(dnconsole_path, tab_index, selected_khu)
+
+        # =========================================================================
+        # 📌 PHẦN 4: TỔ ĐỘI VÀ CHUYỂN ĐỔI VỊ TRÍ NHÂN VẬT (KHI Ô TỔ ĐỘI ĐƯỢC TÍCH)
+        # =========================================================================
+        self._run_40_npc_team_and_char_position(dnconsole_path, tab_index, selected_team_char)
+
+        # =========================================================================
+        # 📌 PHẦN 5: SỰ KIỆN TẦNG (KHI Ô SỰ KIỆN VAR_D3 ĐƯỢC TÍCH)
+        # =========================================================================
+        self._run_40_npc_su_kien_tang(dnconsole_path, tab_index, selected_tang, selected_team_char)
+
+        # Tự động tắt công tắc ON/OFF (False) & nhả ô Tạm Dừng sau khi hoàn thành, giữ nguyên các ô check
         self.var_switch_D.set(False)
+        if hasattr(self, 'var_pause_D'):
+            self.var_pause_D.set(False)
         self.after(0, self.save_config)
         self.after(0, self.log_info, "✅ [5/6: 40 NPC] Đã thực thi hoàn tất dứt điểm! (Đã tự động tắt công tắc ON/OFF & giữ nguyên các ô tích)")
 
@@ -3351,8 +4008,10 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.after(0, self.log_info, f"▶️ [6/6: NHỊ KIỀU] Đang thực thi {len(item_names)} mục đã chọn: {', '.join(item_names)}...")
         time.sleep(1.0)
 
-        # Tự động tắt công tắc ON/OFF (False) sau khi hoàn thành, giữ nguyên các ô check
+        # Tự động tắt công tắc ON/OFF (False) & nhả ô Tạm Dừng sau khi hoàn thành, giữ nguyên các ô check
         self.var_switch_F.set(False)
+        if hasattr(self, 'var_pause_F'):
+            self.var_pause_F.set(False)
         self.after(0, self.save_config)
         self.after(0, self.log_info, "✅ [6/6: NHỊ KIỀU] Đã thực thi hoàn tất dứt điểm! (Đã tự động tắt công tắc ON/OFF & giữ nguyên các ô tích)")
 
@@ -3393,8 +4052,8 @@ class ToolLDPlayerGUI(ctk.CTk):
             px_y = int(raw_y)
         return px_x, px_y
 
-    def _find_template_on_screen(self, dnconsole_path: str, tab_index: str, template_filename: str, threshold: float = 0.85):
-        """👁️ Mắt Thần OpenCV: Khớp vị trí hình ảnh mẫu .png trong thư mục con assets/ với độ chính xác cao"""
+    def _find_template_on_screen(self, dnconsole_path: str, tab_index: str, template_filename: str, threshold: float = 0.85, check_color: bool = False):
+        """👁️ Mắt Thần OpenCV: Khớp vị trí hình ảnh mẫu .png trong thư mục con assets/ với độ chính xác cao & kiểm tra độ sáng màu sắc nút"""
         base_dir = os.path.dirname(os.path.abspath(__file__))
         assets_dir = os.path.join(base_dir, "assets")
         os.makedirs(assets_dir, exist_ok=True)
@@ -3438,7 +4097,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         # File ảnh tạm thời chụp màn hình lưu gọn gàng trong thư mục assets/
         temp_local = os.path.join(assets_dir, f"temp_cap_{tab_index}.png")
         
-        is_nkn = ("nkn" in template_filename.lower()) or ("diemdanh" in template_filename.lower())
+        is_nkn = ("nkn" in template_filename.lower()) or ("diemdanh" in template_filename.lower()) or ("veboss" in template_filename.lower())
         max_attempts = 3 if is_nkn else 1
 
         for attempt in range(max_attempts):
@@ -3452,9 +4111,11 @@ class ToolLDPlayerGUI(ctk.CTk):
                     template = cv2.imread(tmpl_path, cv2.IMREAD_UNCHANGED)
 
                     if screen is not None and template is not None:
-                        # Nới lỏng ngưỡng mặc định cho file nkn.png (do dòng chữ bên trong di chuyển/chuyển động)
+                        # Nới lỏng ngưỡng mặc định cho file nkn.png hoặc c_veboss.png (do có hiệu ứng chuyển động nhẹ)
                         current_threshold = threshold
-                        if is_nkn:
+                        if "veboss" in template_filename.lower():
+                            current_threshold = min(threshold, 0.65)
+                        elif is_nkn:
                             current_threshold = min(threshold, 0.45)
 
                         # Xử lý Alpha Mask (trong suốt) chuẩn xác cho file PNG 4 kênh
@@ -3499,6 +4160,40 @@ class ToolLDPlayerGUI(ctk.CTk):
                             h, w = template.shape[:2]
                             center_x = max_loc[0] + w // 2
                             center_y = max_loc[1] + h // 2
+
+                            # Kiểm tra độ tươi sáng/màu sắc (tránh nhận nhầm ảnh nút bị tối/mờ/vô hiệu hóa)
+                            is_strict_color = check_color or ("dichuyen" in template_filename.lower())
+                            if is_strict_color:
+                                try:
+                                    crop = screen[max_loc[1]:max_loc[1]+h, max_loc[0]:max_loc[0]+w]
+                                    if crop.shape[0] == h and crop.shape[1] == w:
+                                        if len(template.shape) == 3 and template.shape[2] == 4:
+                                            alpha = template[:, :, 3]
+                                            mask_valid = alpha > 50
+                                            tmpl_bgr = cv2.cvtColor(template, cv2.COLOR_BGRA2BGR)
+                                            tmpl_hsv = cv2.cvtColor(tmpl_bgr, cv2.COLOR_BGR2HSV)
+                                            crop_hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+                                            if np.any(mask_valid):
+                                                tmpl_v_mean = float(np.mean(tmpl_hsv[:, :, 2][mask_valid]))
+                                                crop_v_mean = float(np.mean(crop_hsv[:, :, 2][mask_valid]))
+                                            else:
+                                                tmpl_v_mean = float(np.mean(tmpl_hsv[:, :, 2]))
+                                                crop_v_mean = float(np.mean(crop_hsv[:, :, 2]))
+                                        else:
+                                            tmpl_hsv = cv2.cvtColor(template, cv2.COLOR_BGR2HSV)
+                                            crop_hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+                                            tmpl_v_mean = float(np.mean(tmpl_hsv[:, :, 2]))
+                                            crop_v_mean = float(np.mean(crop_hsv[:, :, 2]))
+
+                                        # Nếu ảnh thực tế trên màn hình bị tối/mờ hơn ảnh mẫu chuẩn tươi sáng -> Bỏ qua
+                                        if (tmpl_v_mean - crop_v_mean) > 18 or abs(crop_v_mean - tmpl_v_mean) > 25:
+                                            self.after(0, self.log_info, f"👁️ Mắt thần quét '{template_filename}' ({match_pct}%) nhưng bị TỐI/MỜ MÀU (Độ sáng: {round(crop_v_mean, 1)} / Mẫu chuẩn: {round(tmpl_v_mean, 1)}) ➔ Bỏ qua không nhận.")
+                                            try: os.remove(temp_local)
+                                            except: pass
+                                            return None, None
+                                except Exception:
+                                    pass
+
                             self.after(0, self.log_info, f"👁️ Mắt thần khớp thành công '{template_filename}' ({match_pct}%) tại ({center_x}, {center_y})")
                             try: os.remove(temp_local)
                             except: pass
