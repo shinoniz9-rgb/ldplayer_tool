@@ -27,11 +27,11 @@ class ToolLDPlayerGUI(ctk.CTk):
 
         # --- CẤU HÌNH CỬA SỔ CHÍNH ---
         self.title("TS Origin-Control")
-        self.geometry("944x640")
-        self.minsize(780, 540)
-        self._center_window(944, 640)
+        self.geometry("1121x691")
+        self.minsize(927, 583)
+        self._center_window(1121, 691)
 
-    def _center_window(self, width: int = 944, height: int = 640):
+    def _center_window(self, width: int = 1121, height: int = 691):
         """Căn giữa cửa sổ ứng dụng trên màn hình Desktop"""
         self.update_idletasks()
         screen_width = self.winfo_screenwidth()
@@ -198,6 +198,12 @@ class ToolLDPlayerGUI(ctk.CTk):
                 config["C_char"] = self.combo_C_char.get()
             if hasattr(self, 'combo_C_ve'):
                 config["C_ve"] = self.combo_C_ve.get()
+            if hasattr(self, 'combo_D_khu'):
+                config["D_khu"] = self.combo_D_khu.get()
+            if hasattr(self, 'combo_D_team_char'):
+                config["D_team_char"] = self.combo_D_team_char.get()
+            if hasattr(self, 'combo_D_tang'):
+                config["D_tang"] = self.combo_D_tang.get()
 
             for prefix in ["B", "C", "D", "E", "F"]:
                 switch_attr = f"var_switch_{prefix}"
@@ -258,6 +264,15 @@ class ToolLDPlayerGUI(ctk.CTk):
                 if "C_ve" in config and hasattr(self, 'combo_C_ve'):
                     val = config["C_ve"]
                     self.combo_C_ve.set(val if val in ["1", "2", "3", "4", "5"] else "1")
+                if "D_khu" in config and hasattr(self, 'combo_D_khu'):
+                    val = config["D_khu"]
+                    self.combo_D_khu.set(val if val in ["Cố Định"] + [str(i) for i in range(1, 11)] else "Cố Định")
+                if "D_team_char" in config and hasattr(self, 'combo_D_team_char'):
+                    val = config["D_team_char"]
+                    self.combo_D_team_char.set(val if val in opts else "Xuất Chiến")
+                if "D_tang" in config and hasattr(self, 'combo_D_tang'):
+                    val = config["D_tang"]
+                    self.combo_D_tang.set(val if val in ["35", "36", "37", "38"] else "35")
 
                 for prefix in ["B", "C", "D", "E", "F"]:
                     switch_attr = f"var_switch_{prefix}"
@@ -657,15 +672,17 @@ class ToolLDPlayerGUI(ctk.CTk):
         """Khung chứa 6 Card Cấu hình (Layout 2 hàng x 3 cột)"""
         self.container_cfg = ctk.CTkFrame(self, fg_color="transparent")
         self.container_cfg.grid(row=3, column=0, padx=(15, 4), pady=4, sticky="nsew")
-        self.container_cfg.grid_columnconfigure((0, 2), weight=10)
-        self.container_cfg.grid_columnconfigure(1, weight=8)
+        self.container_cfg.grid_columnconfigure(0, weight=24)
+        self.container_cfg.grid_columnconfigure(1, weight=16)
+        self.container_cfg.grid_columnconfigure(2, weight=60)  # Tăng kích thước card Dị giới theo chiều ngang thêm 10% (từ 50% lên 60%)
         self.container_cfg.grid_rowconfigure((0, 1), weight=1)
 
         # ------------------- CARD 1: PHỤ BẢN ĐƠN / ĐỘI (Cột 0, Row 0) -------------------
         self.card_E = ctk.CTkFrame(self.container_cfg, corner_radius=10)
         self.card_E.grid(row=0, column=0, padx=(0, 2), pady=(0, 4), sticky="nsew")
         self.card_E.grid_columnconfigure(0, weight=1)
-        self.card_E.grid_rowconfigure((0, 1, 2, 3, 4, 5), weight=1)
+        self.card_E.grid_rowconfigure(0, weight=0)
+        self.card_E.grid_rowconfigure((1, 2, 3, 4), weight=1)
 
         hdr_E = ctk.CTkFrame(self.card_E, fg_color="transparent")
         hdr_E.grid(row=0, column=0, padx=8, pady=(6, 2), sticky="ew")
@@ -684,7 +701,7 @@ class ToolLDPlayerGUI(ctk.CTk):
 
         # Bảng Cấu hình chế độ Phụ Bản Đơn / Đội
         grid_modes = ctk.CTkFrame(self.card_E, fg_color="transparent")
-        grid_modes.grid(row=1, column=0, padx=6, pady=2, sticky="ew")
+        grid_modes.grid(row=1, column=0, padx=4, pady=1, sticky="ew")
         grid_modes.grid_columnconfigure(0, weight=0)
         grid_modes.grid_columnconfigure(1, weight=1)
 
@@ -694,18 +711,18 @@ class ToolLDPlayerGUI(ctk.CTk):
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
             text_color="#38BDF8"
         )
-        lbl_pb_don.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 2))
+        lbl_pb_don.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 1))
 
         # Hàng 1 (Phụ Bản Đơn): [ ] Cá Nhân | [ Menu NV Đơn ]
         box_don_check = ctk.CTkFrame(grid_modes, fg_color="transparent")
-        box_don_check.grid(row=1, column=0, sticky="w", padx=(0, 4))
+        box_don_check.grid(row=1, column=0, sticky="w", padx=(0, 1))
 
         self.chk_E_don = ctk.CTkCheckBox(
             box_don_check, text="Cá Nhân", variable=self.var_E_don, command=self._on_checkbox_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
             fg_color="#0284C7", hover_color="#0369A1", checkbox_width=14, checkbox_height=14, border_width=2, corner_radius=5
         )
-        self.chk_E_don.pack(side="left", padx=(0, 2))
+        self.chk_E_don.pack(side="left", padx=(0, 1))
 
         self.combo_E_don_char = ctk.CTkOptionMenu(
             grid_modes,
@@ -713,7 +730,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
             dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
             height=24,
-            width=75,
+            width=115,
             fg_color="#374151",
             button_color="#4B5563",
             button_hover_color="#6B7280",
@@ -728,28 +745,28 @@ class ToolLDPlayerGUI(ctk.CTk):
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
             text_color="#38BDF8"
         )
-        lbl_pb_doi.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(4, 2))
+        lbl_pb_doi.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(2, 1))
 
         # Hàng 2 (Phụ Bản Đội): [ ] Cá Nhân | [ ] Tổ Đội | [ Menu NV Team ]
         box_checks_team = ctk.CTkFrame(grid_modes, fg_color="transparent")
-        box_checks_team.grid(row=3, column=0, sticky="w", padx=(0, 4))
+        box_checks_team.grid(row=3, column=0, sticky="w", padx=(0, 1))
 
         self.chk_E_canhan = ctk.CTkCheckBox(
             box_checks_team, text="Cá Nhân", variable=self.var_E_canhan, command=self._on_E_canhan_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
             fg_color="#0284C7", hover_color="#0369A1", checkbox_width=14, checkbox_height=14, border_width=2, corner_radius=5
         )
-        self.chk_E_canhan.pack(side="left", padx=(0, 2))
+        self.chk_E_canhan.pack(side="left", padx=(0, 0))
 
         divider_E_team = ctk.CTkFrame(box_checks_team, width=2, height=14, fg_color="#38BDF8")
-        divider_E_team.pack(side="left", padx=2)
+        divider_E_team.pack(side="left", padx=(2, 5))
 
         self.chk_E_doi = ctk.CTkCheckBox(
             box_checks_team, text="Tổ Đội", variable=self.var_E_doi, command=self._on_E_doi_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
             fg_color="#0284C7", hover_color="#0369A1", checkbox_width=14, checkbox_height=14, border_width=2, corner_radius=5
         )
-        self.chk_E_doi.pack(side="left", padx=(2, 0))
+        self.chk_E_doi.pack(side="left", padx=(0, 0))
 
         self.combo_E_team_char = ctk.CTkOptionMenu(
             grid_modes,
@@ -757,7 +774,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
             dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
             height=24,
-            width=75,
+            width=115,
             fg_color="#374151",
             button_color="#4B5563",
             button_hover_color="#6B7280",
@@ -768,12 +785,12 @@ class ToolLDPlayerGUI(ctk.CTk):
 
         # Đường gạch ngang phân cách giữa phần Chế độ/Menu (trên) và 4 Phụ bản (dưới)
         divider_horiz_E = ctk.CTkFrame(self.card_E, height=1, fg_color="#0284C7")
-        divider_horiz_E.grid(row=2, column=0, padx=8, pady=(4, 4), sticky="ew")
+        divider_horiz_E.grid(row=2, column=0, padx=6, pady=(2, 2), sticky="ew")
 
         # 4 Mục Phụ Bản xếp hàng ngang (2 mục mỗi bên, 2 hàng)
         row_pb1 = ctk.CTkFrame(self.card_E, fg_color="transparent")
-        row_pb1.grid(row=3, column=0, padx=8, pady=2, sticky="ew")
-        row_pb1.grid_columnconfigure(0, weight=0, minsize=70)
+        row_pb1.grid(row=3, column=0, padx=6, pady=1, sticky="ew")
+        row_pb1.grid_columnconfigure(0, weight=0, minsize=65)
         row_pb1.grid_columnconfigure(1, weight=1)
 
         self.chk_E1 = ctk.CTkCheckBox(row_pb1, text="PB 20", variable=self.var_E1, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkbox_width=14, checkbox_height=14, border_width=2, corner_radius=5)
@@ -783,8 +800,8 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.chk_E2.grid(row=0, column=1, sticky="w")
 
         row_pb2 = ctk.CTkFrame(self.card_E, fg_color="transparent")
-        row_pb2.grid(row=4, column=0, padx=8, pady=(2, 6), sticky="ew")
-        row_pb2.grid_columnconfigure(0, weight=0, minsize=70)
+        row_pb2.grid(row=4, column=0, padx=6, pady=(1, 3), sticky="ew")
+        row_pb2.grid_columnconfigure(0, weight=0, minsize=65)
         row_pb2.grid_columnconfigure(1, weight=1)
 
         self.chk_E3 = ctk.CTkCheckBox(row_pb2, text="PB 80", variable=self.var_E3, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkbox_width=14, checkbox_height=14, border_width=2, corner_radius=5)
@@ -797,7 +814,9 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.card_C = ctk.CTkFrame(self.container_cfg, corner_radius=10)
         self.card_C.grid(row=0, column=1, padx=2, pady=(0, 4), sticky="nsew")
         self.card_C.grid_columnconfigure(0, weight=1)
-        self.card_C.grid_rowconfigure((0, 1, 2, 3, 4), weight=1)
+        self.card_C.grid_rowconfigure(0, weight=0)
+        self.card_C.grid_rowconfigure(1, weight=1)
+        self.card_C.grid_rowconfigure(2, weight=0)
 
         hdr_C = ctk.CTkFrame(self.card_C, fg_color="transparent")
         hdr_C.grid(row=0, column=0, padx=8, pady=(6, 2), sticky="ew")
@@ -812,39 +831,46 @@ class ToolLDPlayerGUI(ctk.CTk):
         )
         self.switch_C.grid(row=0, column=1, sticky="e")
 
-        # Hàng 1: Menu Xuất Chiến (Đồng nhất với Card 1)
+        # Bảng chứa Boss & Vé được sắp xếp cân đối
+        grid_C_body = ctk.CTkFrame(self.card_C, fg_color="transparent")
+        grid_C_body.grid(row=1, column=0, padx=8, pady=(4, 4), sticky="nsew")
+        grid_C_body.grid_columnconfigure(0, weight=0, minsize=52)
+        grid_C_body.grid_columnconfigure(1, weight=1)
+        grid_C_body.grid_rowconfigure((0, 1), weight=1)
+
+        # Hàng 0: Boss + Menu Vị trí xuất chiến
+        self.chk_C1 = ctk.CTkCheckBox(
+            grid_C_body, text="Boss", variable=self.var_C1, command=self._on_checkbox_toggled,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            fg_color="#D97706", hover_color="#B45309", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
+        )
+        self.chk_C1.grid(row=0, column=0, sticky="w", pady=2)
+
         self.combo_C_char = ctk.CTkOptionMenu(
-            self.card_C,
+            grid_C_body,
             values=char_options,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
             dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
             height=24,
-            width=75,
+            width=115,
             fg_color="#374151",
             button_color="#4B5563",
             button_hover_color="#6B7280",
             command=lambda choice: self._on_checkbox_toggled()
         )
         self.combo_C_char.set(char_options[0] if char_options else "Xuất Chiến")
-        self.combo_C_char.grid(row=1, column=0, padx=12, pady=1, sticky="w")
+        self.combo_C_char.grid(row=0, column=1, sticky="w", pady=2)
 
-        # Hàng 2: Boss (Gộp Boss Sáng & Boss Trưa)
-        self.chk_C1 = ctk.CTkCheckBox(self.card_C, text="Boss", variable=self.var_C1, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#D97706", hover_color="#B45309", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
-        self.chk_C1.grid(row=2, column=0, padx=12, pady=1, sticky="w")
-
-        # Hàng 3: Vé + Menu thả xuất số thứ tự 1,2,3,4,5
-        row_C_ve = ctk.CTkFrame(self.card_C, fg_color="transparent")
-        row_C_ve.grid(row=3, column=0, padx=12, pady=(0, 6), sticky="w")
-
+        # Hàng 1: Vé + Menu số
         self.chk_C3 = ctk.CTkCheckBox(
-            row_C_ve, text="Vé", variable=self.var_C3, command=self._on_checkbox_toggled,
+            grid_C_body, text="Vé", variable=self.var_C3, command=self._on_checkbox_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
             fg_color="#D97706", hover_color="#B45309", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
         )
-        self.chk_C3.pack(side="left", padx=(0, 6))
+        self.chk_C3.grid(row=1, column=0, sticky="w", pady=2)
 
         self.combo_C_ve = ctk.CTkOptionMenu(
-            row_C_ve,
+            grid_C_body,
             values=["1", "2", "3", "4", "5"],
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
             dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
@@ -856,13 +882,36 @@ class ToolLDPlayerGUI(ctk.CTk):
             command=lambda choice: self._on_checkbox_toggled()
         )
         self.combo_C_ve.set("1")
-        self.combo_C_ve.pack(side="left")
+        self.combo_C_ve.grid(row=1, column=1, sticky="w", pady=2)
+
+        # Lịch hệ Boss Thế Giới 7 ngày chia đều theo 100% chiều ngang Card Boss
+        schedule_C = ctk.CTkFrame(self.card_C, fg_color="transparent")
+        schedule_C.grid(row=2, column=0, padx=6, pady=(6, 8), sticky="ew")
+        schedule_C.grid_columnconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
+
+        all_days = [
+            ("T2", "Địa", "#FBBF24"),
+            ("T3", "Thủy", "#38BDF8"),
+            ("T4", "Hỏa", "#F87171"),
+            ("T5", "Phong", "#4ADE80"),
+            ("T6", "Hỏa", "#F87171"),
+            ("T7", "Thủy", "#38BDF8"),
+            ("CN", "Phong", "#4ADE80"),
+        ]
+        for col_idx, (day, elem, color) in enumerate(all_days):
+            box = ctk.CTkFrame(schedule_C, fg_color="transparent")
+            box.grid(row=0, column=col_idx, sticky="nsew")
+            lbl_d = ctk.CTkLabel(box, text=day, font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color="gray70", height=16)
+            lbl_d.pack(side="top", anchor="center")
+            lbl_e = ctk.CTkLabel(box, text=elem, font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color=color, height=16)
+            lbl_e.pack(side="top", anchor="center", pady=(3, 0))
 
         # ------------------- CARD 3: DỊ GIỚI (Cột 2, Row 0) -------------------
         self.card_B = ctk.CTkFrame(self.container_cfg, corner_radius=10)
         self.card_B.grid(row=0, column=2, padx=(2, 0), pady=(0, 4), sticky="nsew")
         self.card_B.grid_columnconfigure(0, weight=1)
-        self.card_B.grid_rowconfigure((0, 1, 2, 3, 4), weight=1)
+        self.card_B.grid_rowconfigure(0, weight=0)
+        self.card_B.grid_rowconfigure((1, 2, 3, 4), weight=1)
 
         hdr_B = ctk.CTkFrame(self.card_B, fg_color="transparent")
         hdr_B.grid(row=0, column=0, padx=8, pady=(6, 2), sticky="ew")
@@ -879,46 +928,47 @@ class ToolLDPlayerGUI(ctk.CTk):
 
         # Row 1: Phúc Thần + ( OFF / ON )
         row_B1 = ctk.CTkFrame(self.card_B, fg_color="transparent")
-        row_B1.grid(row=1, column=0, padx=12, pady=1, sticky="ew")
+        row_B1.grid(row=1, column=0, padx=6, pady=1, sticky="ew")
 
-        self.chk_B1 = ctk.CTkCheckBox(row_B1, text="Phúc Thần", variable=self.var_B1, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#059669", hover_color="#047857", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
+        self.chk_B1 = ctk.CTkCheckBox(row_B1, text="Phúc Thần", variable=self.var_B1, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"), fg_color="#059669", hover_color="#047857", checkbox_width=15, checkbox_height=15, border_width=2, corner_radius=5)
         self.chk_B1.pack(side="left")
 
-        lbl_B1_tag = ctk.CTkLabel(row_B1, text="( OFF / ON )", font=ctk.CTkFont(family="Segoe UI", size=10, weight="normal"), text_color="gray60")
-        lbl_B1_tag.pack(side="right")
+        lbl_B1_tag = ctk.CTkLabel(row_B1, text="( OFF / ON )", font=ctk.CTkFont(family="Segoe UI", size=8, weight="normal"), text_color="gray60")
+        lbl_B1_tag.pack(side="right", padx=(0, 10))
 
         # Row 2: Ký Lục + ( OFF / ON )
         row_B2 = ctk.CTkFrame(self.card_B, fg_color="transparent")
-        row_B2.grid(row=2, column=0, padx=12, pady=1, sticky="ew")
+        row_B2.grid(row=2, column=0, padx=6, pady=1, sticky="ew")
 
-        self.chk_B2 = ctk.CTkCheckBox(row_B2, text="Ký Lục", variable=self.var_B2, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#059669", hover_color="#047857", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
+        self.chk_B2 = ctk.CTkCheckBox(row_B2, text="Ký Lục", variable=self.var_B2, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"), fg_color="#059669", hover_color="#047857", checkbox_width=15, checkbox_height=15, border_width=2, corner_radius=5)
         self.chk_B2.pack(side="left")
 
-        lbl_B2_tag = ctk.CTkLabel(row_B2, text="( OFF / ON )", font=ctk.CTkFont(family="Segoe UI", size=10, weight="normal"), text_color="gray60")
-        lbl_B2_tag.pack(side="right")
+        lbl_B2_tag = ctk.CTkLabel(row_B2, text="( OFF / ON )", font=ctk.CTkFont(family="Segoe UI", size=8, weight="normal"), text_color="gray60")
+        lbl_B2_tag.pack(side="right", padx=(0, 10))
 
         # Row 3: Rút Gọn + ( OFF / ON )
         row_B3 = ctk.CTkFrame(self.card_B, fg_color="transparent")
-        row_B3.grid(row=3, column=0, padx=12, pady=1, sticky="ew")
+        row_B3.grid(row=3, column=0, padx=6, pady=1, sticky="ew")
 
-        self.chk_B3 = ctk.CTkCheckBox(row_B3, text="Rút Gọn", variable=self.var_B3, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#059669", hover_color="#047857", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
+        self.chk_B3 = ctk.CTkCheckBox(row_B3, text="Rút Gọn", variable=self.var_B3, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"), fg_color="#059669", hover_color="#047857", checkbox_width=15, checkbox_height=15, border_width=2, corner_radius=5)
         self.chk_B3.pack(side="left")
 
-        lbl_B3_tag = ctk.CTkLabel(row_B3, text="( OFF / ON )", font=ctk.CTkFont(family="Segoe UI", size=10, weight="normal"), text_color="gray60")
-        lbl_B3_tag.pack(side="right")
+        lbl_B3_tag = ctk.CTkLabel(row_B3, text="( OFF / ON )", font=ctk.CTkFont(family="Segoe UI", size=8, weight="normal"), text_color="gray60")
+        lbl_B3_tag.pack(side="right", padx=(0, 10))
 
         # Row 4: Dị Giới Đêm
         row_B4 = ctk.CTkFrame(self.card_B, fg_color="transparent")
-        row_B4.grid(row=4, column=0, padx=12, pady=(0, 6), sticky="ew")
+        row_B4.grid(row=4, column=0, padx=6, pady=(0, 6), sticky="ew")
 
-        self.chk_B4 = ctk.CTkCheckBox(row_B4, text="Dị Giới Đêm", variable=self.var_B4, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#059669", hover_color="#047857", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
+        self.chk_B4 = ctk.CTkCheckBox(row_B4, text="Dị Giới Đêm", variable=self.var_B4, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"), fg_color="#059669", hover_color="#047857", checkbox_width=15, checkbox_height=15, border_width=2, corner_radius=5)
         self.chk_B4.pack(side="left")
 
         # ------------------- CARD 4: TỔ ĐỘI (Cột 0, Row 1) -------------------
         self.card_G = ctk.CTkFrame(self.container_cfg, corner_radius=10)
         self.card_G.grid(row=1, column=0, padx=(0, 2), pady=(4, 0), sticky="nsew")
         self.card_G.grid_columnconfigure(0, weight=1)
-        self.card_G.grid_rowconfigure((0, 1, 2, 3, 4), weight=1)
+        self.card_G.grid_rowconfigure(0, weight=0)
+        self.card_G.grid_rowconfigure((1, 2, 3, 4), weight=1)
 
         hdr_G = ctk.CTkFrame(self.card_G, fg_color="transparent")
         hdr_G.grid(row=0, column=0, padx=8, pady=(6, 2), sticky="ew")
@@ -926,6 +976,9 @@ class ToolLDPlayerGUI(ctk.CTk):
 
         self.lbl_G = ctk.CTkLabel(hdr_G, text="TỔ ĐỘI", font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), text_color="#FB923C")
         self.lbl_G.grid(row=0, column=0, sticky="w")
+
+        dummy_G = ctk.CTkFrame(hdr_G, width=36, height=18, fg_color="transparent")
+        dummy_G.grid(row=0, column=1, sticky="e")
 
         self.chk_G1 = ctk.CTkCheckBox(self.card_G, text="G1", variable=self.var_G1, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#EA580C", hover_color="#C2410C", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
         self.chk_G1.grid(row=1, column=0, padx=12, pady=2, sticky="w")
@@ -943,7 +996,8 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.card_D = ctk.CTkFrame(self.container_cfg, corner_radius=10)
         self.card_D.grid(row=1, column=1, padx=2, pady=(4, 0), sticky="nsew")
         self.card_D.grid_columnconfigure(0, weight=1)
-        self.card_D.grid_rowconfigure((0, 1, 2, 3, 4), weight=1)
+        self.card_D.grid_rowconfigure(0, weight=0)
+        self.card_D.grid_rowconfigure(1, weight=1)
 
         hdr_D = ctk.CTkFrame(self.card_D, fg_color="transparent")
         hdr_D.grid(row=0, column=0, padx=8, pady=(6, 2), sticky="ew")
@@ -958,23 +1012,99 @@ class ToolLDPlayerGUI(ctk.CTk):
         )
         self.switch_D.grid(row=0, column=1, sticky="e")
 
-        self.chk_D1 = ctk.CTkCheckBox(self.card_D, text="D1", variable=self.var_D1, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#DC2626", hover_color="#B91C1C", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
-        self.chk_D1.grid(row=1, column=0, padx=12, pady=2, sticky="w")
+        grid_D_body = ctk.CTkFrame(self.card_D, fg_color="transparent")
+        grid_D_body.grid(row=1, column=0, padx=6, pady=(4, 6), sticky="nsew")
+        grid_D_body.grid_columnconfigure(0, weight=0, minsize=65)
+        grid_D_body.grid_columnconfigure(1, weight=1)
+        grid_D_body.grid_rowconfigure((0, 1, 2, 3), weight=1)
 
-        self.chk_D2 = ctk.CTkCheckBox(self.card_D, text="D2", variable=self.var_D2, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#DC2626", hover_color="#B91C1C", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
-        self.chk_D2.grid(row=2, column=0, padx=12, pady=2, sticky="w")
+        # 1. Khu - menu drop Số Thứ Tự (Cố Định, 1..10)
+        self.chk_D1 = ctk.CTkCheckBox(
+            grid_D_body, text="Khu", variable=self.var_D1, command=self._on_checkbox_toggled,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            fg_color="#DC2626", hover_color="#B91C1C", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
+        )
+        self.chk_D1.grid(row=0, column=0, sticky="w", pady=4)
 
-        self.chk_D3 = ctk.CTkCheckBox(self.card_D, text="D3", variable=self.var_D3, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#DC2626", hover_color="#B91C1C", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
-        self.chk_D3.grid(row=3, column=0, padx=12, pady=2, sticky="w")
+        khu_options = ["Cố Định"] + [str(i) for i in range(1, 11)]
+        self.combo_D_khu = ctk.CTkOptionMenu(
+            grid_D_body,
+            values=khu_options,
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
+            dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            height=24,
+            width=90,
+            fg_color="#374151",
+            button_color="#4B5563",
+            button_hover_color="#6B7280",
+            command=lambda choice: self._on_checkbox_toggled()
+        )
+        self.combo_D_khu.set("Cố Định")
+        self.combo_D_khu.grid(row=0, column=1, sticky="w", pady=4)
 
-        self.chk_D4 = ctk.CTkCheckBox(self.card_D, text="D4", variable=self.var_D4, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#DC2626", hover_color="#B91C1C", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
-        self.chk_D4.grid(row=4, column=0, padx=12, pady=(0, 6), sticky="w")
+        # 2. Tổ Đội - menu vị trí Xuất Chiến
+        self.chk_D2 = ctk.CTkCheckBox(
+            grid_D_body, text="Tổ Đội", variable=self.var_D2, command=self._on_checkbox_toggled,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            fg_color="#DC2626", hover_color="#B91C1C", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
+        )
+        self.chk_D2.grid(row=1, column=0, sticky="w", pady=4)
+
+        self.combo_D_team_char = ctk.CTkOptionMenu(
+            grid_D_body,
+            values=char_options,
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
+            dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            height=24,
+            width=115,
+            fg_color="#374151",
+            button_color="#4B5563",
+            button_hover_color="#6B7280",
+            command=lambda choice: self._on_checkbox_toggled()
+        )
+        self.combo_D_team_char.set(char_options[0] if char_options else "Xuất Chiến")
+        self.combo_D_team_char.grid(row=1, column=1, sticky="w", pady=4)
+
+        # 3. Hàng 1 : Sự Kiện kích hoạt thao tác của hàng 2 menu drop Tầng
+        self.chk_D3 = ctk.CTkCheckBox(
+            grid_D_body, text="Sự Kiện", variable=self.var_D3, command=self._on_checkbox_toggled,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            fg_color="#DC2626", hover_color="#B91C1C", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
+        )
+        self.chk_D3.grid(row=2, column=0, columnspan=2, sticky="w", pady=4)
+
+        # Hàng 2 : Menu drop Tầng ( 35 , 36 , 37 , 38 )
+        box_tang = ctk.CTkFrame(grid_D_body, fg_color="transparent")
+        box_tang.grid(row=3, column=0, columnspan=2, sticky="w", padx=(20, 0), pady=4)
+
+        lbl_tang = ctk.CTkLabel(
+            box_tang, text="Tầng:",
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
+            text_color="gray70"
+        )
+        lbl_tang.pack(side="left", padx=(0, 6))
+
+        self.combo_D_tang = ctk.CTkOptionMenu(
+            box_tang,
+            values=["35", "36", "37", "38"],
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
+            dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            height=24,
+            width=65,
+            fg_color="#374151",
+            button_color="#4B5563",
+            button_hover_color="#6B7280",
+            command=lambda choice: self._on_checkbox_toggled()
+        )
+        self.combo_D_tang.set("35")
+        self.combo_D_tang.pack(side="left")
 
         # ------------------- CARD 6: NHỊ KIỀU (Cột 2, Row 1) -------------------
         self.card_F = ctk.CTkFrame(self.container_cfg, corner_radius=10)
         self.card_F.grid(row=1, column=2, padx=(2, 0), pady=(4, 0), sticky="nsew")
         self.card_F.grid_columnconfigure(0, weight=1)
-        self.card_F.grid_rowconfigure((0, 1, 2, 3, 4), weight=1)
+        self.card_F.grid_rowconfigure(0, weight=0)
+        self.card_F.grid_rowconfigure((1, 2, 3, 4), weight=1)
 
         hdr_F = ctk.CTkFrame(self.card_F, fg_color="transparent")
         hdr_F.grid(row=0, column=0, padx=8, pady=(6, 2), sticky="ew")
@@ -1731,6 +1861,58 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.stop_requested = False
         self.after(0, self.log_info, "🛑 Đã dừng tiến trình tuần tự các hoạt động theo yêu cầu!")
 
+    def _run_safezone_di_gioi(self, dnconsole_path: str, tab_index: str, px_x: int, px_y: int):
+        """QUY TRÌNH VỀ KHU AN TOÀN CHO CARD DỊ GIỚI"""
+        if self._should_stop_di_gioi(): return
+        self.after(0, self.log_info, "👁️ Quét tìm nút 'login_x.png' để đóng bảng quảng cáo/thông báo...")
+        lx_x, lx_y = self._find_template_on_screen(dnconsole_path, tab_index, "login_x.png", threshold=0.75)
+        if lx_x is not None and lx_y is not None:
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'login_x.png' tại ({lx_x}, {lx_y})! Click chọn...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {lx_x} {lx_y}"])
+            time.sleep(1.0)
+
+        if self._should_stop_di_gioi(): return
+        self.after(0, self.log_info, "👁️ [Dị Giới - Về Khu An Toàn] Quét tìm nút Vị Trí 'a_vitri.png' (85%)...")
+        v_x, v_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_vitri.png", threshold=0.85)
+        if v_x is not None and v_y is not None:
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'a_vitri.png' tại ({v_x}, {v_y})! Tap click trực tiếp...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {v_x} {v_y}"])
+            time.sleep(1.0)
+        else:
+            self.after(0, self.log_info, f"👉 Chưa thấy 'a_vitri.png' ➔ Click nút xanh lá góc dưới phải ({px_x}, {px_y}) mở menu...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {px_x} {px_y}"])
+            time.sleep(1.2)
+            if self._should_stop_di_gioi(): return
+            v_x, v_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_vitri.png", threshold=0.85)
+            if v_x is not None and v_y is not None:
+                self.after(0, self.log_info, f"🎯 Phát hiện nút 'a_vitri.png' tại ({v_x}, {v_y})! Tap click trực tiếp...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {v_x} {v_y}"])
+                time.sleep(1.0)
+            else:
+                self.after(0, self.log_info, "⚠️ Chưa quét thấy biểu tượng 'a_vitri.png' trong bảng menu.")
+
+        if self._should_stop_di_gioi(): return
+        self.after(0, self.log_info, "👉 Click liên tục (435, 250) mỗi 0.5s cho đến khi xuất hiện nút Có 'card_c/c_co.png' (85%)...")
+        while not self._should_stop_di_gioi():
+            co_x, co_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_co.png", threshold=0.85)
+            if co_x is not None and co_y is not None:
+                self.after(0, self.log_info, f"🎯 Mắt thần phát hiện nút Có 'card_c/c_co.png' tại ({co_x}, {co_y})! Dừng click (435, 250).")
+                break
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 435 250"])
+            time.sleep(0.5)
+
+        if self._should_stop_di_gioi(): return
+        self.after(0, self.log_info, "👁️ Click liên tục nút Có 'card_c/c_co.png' (0.5s mỗi lần) cho tới khi hết ảnh...")
+        while not self._should_stop_di_gioi():
+            co_x, co_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_co.png", threshold=0.85)
+            if co_x is not None and co_y is not None:
+                self.after(0, self.log_info, f"🎯 Phát hiện nút Có 'card_c/c_co.png' tại ({co_x}, {co_y}) ➔ Click vào vị trí ảnh...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {co_x} {co_y}"])
+                time.sleep(0.5)
+            else:
+                self.after(0, self.log_info, "ℹ️ Không còn thấy ảnh nút Có 'card_c/c_co.png' ➔ Hoàn thành Về Khu An Toàn!")
+                break
+
     def _execute_card_B_di_gioi(self, dnconsole_path: str, tab_name: str, tab_index: str):
         """Thực thi Card 1: DỊ GIỚI ĐÊM (B) dưới sự kiểm soát của công tắc gạt ON"""
         if self._should_stop_di_gioi():
@@ -1778,8 +1960,17 @@ class ToolLDPlayerGUI(ctk.CTk):
         if dg_x is not None and dg_y is not None:
             self.after(0, self.log_info, f"🎯 Đã phát hiện map Dị Giới 'a_digioi.png' tại ({dg_x}, {dg_y}) ➔ Bỏ qua các thao tác trong Bước 2: Vào Dị Giới.")
         else:
-            self.after(0, self.log_info, "👉 Chưa thấy map 'a_digioi.png' ➔ Tiến hành quét nút Vị Trí 'a_vitri.png' để vào Dị Giới...")
+            self.after(0, self.log_info, "👉 Chưa thấy map 'a_digioi.png' ➔ Thực hiện thao tác Về Vùng An Toàn trước khi vào Dị Giới...")
+            self._run_safezone_di_gioi(dnconsole_path, tab_index, px_x, px_y)
+
             if self._should_stop_di_gioi(): return
+            self.after(0, self.log_info, "⏳ [DỊ GIỚI] Hoãn 3 giây sau khi Về Vùng An Toàn...")
+            for _ in range(3):
+                if self._should_stop_di_gioi(): return
+                time.sleep(1.0)
+
+            if self._should_stop_di_gioi(): return
+            self.after(0, self.log_info, "👉 Tiến hành quét nút Vị Trí 'a_vitri.png' để vào Dị Giới...")
             v_x, v_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_vitri.png", threshold=0.85)
             if v_x is not None and v_y is not None:
                 self.after(0, self.log_info, f"🎯 Mắt thần phát hiện nút 'a_vitri.png' tại ({v_x}, {v_y})! Nhấp chọn ngay...")
@@ -1809,6 +2000,12 @@ class ToolLDPlayerGUI(ctk.CTk):
             self.after(0, self.log_info, f"👉 Click chọn tọa độ ({v2_x}, {v2_y})...")
             self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {v2_x} {v2_y}"])
             time.sleep(1.0)
+
+            if self._should_stop_di_gioi(): return
+            self.after(0, self.log_info, "⏳ [DỊ GIỚI] Hoãn 3 giây sau khi đưa nhân vật vào map Dị Giới...")
+            for _ in range(3):
+                if self._should_stop_di_gioi(): return
+                time.sleep(1.0)
 
         # =========================================================================
         # 📌 3. ĐẾM GIỜ & TẮT KÝ LỤC (Nếu TÍCH ô Dị Giới Đêm)
@@ -1891,7 +2088,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         if self._should_stop_di_gioi(): return
 
         # =========================================================================
-        # 📌 4. VÀO DỊ GIỚI (LÚC 00H05) (Nếu TÍCH ô Dị Giới Đêm)
+        # 📌 4. VÀO DỊ GIỚI (LÚC 00H05) & BẬT KÝ LỤC (Nếu TÍCH ô Dị Giới Đêm)
         # =========================================================================
         if has_di_gioi:
             self.after(0, self.log_info, "🚀 [DỊ GIỚI - 00H05] Kích hoạt quy trình Vào Dị Giới (00H05) của Card Dị Giới Đêm...")
@@ -1925,6 +2122,57 @@ class ToolLDPlayerGUI(ctk.CTk):
 
             self.after(0, self.log_info, f"👉 Click chọn tọa độ ({v2_x}, {v2_y})...")
             self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {v2_x} {v2_y}"])
+            time.sleep(1.0)
+
+            if self._should_stop_di_gioi(): return
+            self.after(0, self.log_info, "⏳ [DỊ GIỚI - 00H05] Hoãn 3 giây sau khi vào lại map Dị Giới...")
+            for _ in range(3):
+                if self._should_stop_di_gioi(): return
+                time.sleep(1.0)
+
+            # Tự động Bật Ký Lục dù ô check Ký Lục có đang Mở hay Tắt
+            if self._should_stop_di_gioi(): return
+            self.after(0, self.log_info, "▶️ [DỊ GIỚI - 00H05] Tự động kích hoạt BẬT KÝ LỤC...")
+            ai_x, ai_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_ai.png", threshold=0.85)
+            if ai_x is not None and ai_y is not None:
+                self.after(0, self.log_info, f"🎯 Mắt thần phát hiện nút 'a_ai.png' tại ({ai_x}, {ai_y})! Nhấp chọn ngay...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {ai_x} {ai_y}"])
+                time.sleep(1.0)
+            else:
+                self.after(0, self.log_info, f"👉 Chưa thấy 'a_ai.png' ➔ Click nút xanh lá góc dưới phải tại ({px_x}, {px_y}) để mở menu...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {px_x} {px_y}"])
+                time.sleep(1.2)
+                if self._should_stop_di_gioi(): return
+                ai_x, ai_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_ai.png", threshold=0.85)
+                if ai_x is not None and ai_y is not None:
+                    self.after(0, self.log_info, f"🎯 Phát hiện nút 'a_ai.png' tại ({ai_x}, {ai_y})! Đang nhấp chọn...")
+                    self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {ai_x} {ai_y}"])
+                    time.sleep(1.0)
+                else:
+                    self.after(0, self.log_info, "⚠️ Chưa quét thấy biểu tượng 'a_ai.png' trong bảng menu.")
+
+            if self._should_stop_di_gioi(): return
+            self.after(0, self.log_info, f"👉 Click tọa độ Cài đặt ({c_x}, {c_y})...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {c_x} {c_y}"])
+            time.sleep(1.0)
+
+            if self._should_stop_di_gioi(): return
+            self.after(0, self.log_info, "👁️ Quét kiểm tra ảnh mẫu 'a_kyluc.png' (ngưỡng 95%)...")
+            kl_x, kl_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_kyluc.png", threshold=0.95)
+            if kl_x is not None and kl_y is not None:
+                self.after(0, self.log_info, f"🎯 Giao diện ĐÃ KHỚP ảnh mẫu 'a_kyluc.png' (Đang Tắt) ➔ Click vào ({kl_tap_x}, {kl_tap_y}) để Bật Ký Lục...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {kl_tap_x} {kl_tap_y}"])
+                time.sleep(1.0)
+            else:
+                self.after(0, self.log_info, "ℹ️ Giao diện KHÔNG KHỚP ảnh mẫu 'a_kyluc.png' (Đã Bật sẵn) ➔ Bỏ qua.")
+
+            if self._should_stop_di_gioi(): return
+            self.after(0, self.log_info, f"👉 Click tọa độ đóng ({end_x}, {end_y})...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {end_x} {end_y}"])
+            time.sleep(1.0)
+
+            self.after(0, self.log_info, f"👉 Click nút xanh lá ({px_x}, {px_y}) để thu gọn menu...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {px_x} {px_y}"])
             time.sleep(1.0)
 
             self.after(0, self.log_info, "⚙️ [DỊ GIỚI] Hoàn thành thao tác Dị Giới Đêm (giữ nguyên ô tích).")
@@ -2035,6 +2283,75 @@ class ToolLDPlayerGUI(ctk.CTk):
             self.after(0, self.log_info, "7. Hoàn thành thao tác Ký Lục (giữ nguyên ô tích).")
 
         # Ô Rút Gọn:
+        if self._should_stop_di_gioi(): return
+        self.after(0, self.log_info, f"▶️ [RÚT GỌN] Kiểm tra ô Rút Gọn (Trạng thái: {'ĐƯỢC TÍCH' if has_rut_gon else 'KHÔNG TÍCH'})...")
+        ai_x, ai_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_ai.png", threshold=0.85)
+        if ai_x is not None and ai_y is not None:
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện nút 'a_ai.png' tại ({ai_x}, {ai_y})! Nhấp chọn ngay...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {ai_x} {ai_y}"])
+            time.sleep(1.0)
+        else:
+            self.after(0, self.log_info, f"1. Click mở lại bảng menu tại ({px_x}, {px_y})...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {px_x} {px_y}"])
+            time.sleep(1.2)
+            if self._should_stop_di_gioi(): return
+            ai_x, ai_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_ai.png", threshold=0.85)
+            if ai_x is not None and ai_y is not None:
+                self.after(0, self.log_info, f"🎯 Mắt thần phát hiện nút 'a_ai.png' tại ({ai_x}, {ai_y})! Đang nhấp chọn...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {ai_x} {ai_y}"])
+                time.sleep(1.0)
+
+        if self._should_stop_di_gioi(): return
+        self.after(0, self.log_info, f"2. Click Cài đặt tại ({c_x}, {c_y})...")
+        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {c_x} {c_y}"])
+        time.sleep(1.0)
+
+        self.after(0, self.log_info, "3. Quét kiểm tra ảnh mẫu 'a_rutgon.png' (ngưỡng 95%)...")
+        rg_x, rg_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_rutgon.png", threshold=0.95)
+        if has_rut_gon:
+            if rg_x is not None and rg_y is not None:
+                self.after(0, self.log_info, f"🎯 [BẬT] Giao diện ĐÃ KHỚP ảnh mẫu 'a_rutgon.png' ➔ Click vào ({rg_tap_x}, {rg_tap_y}) để Bật Rút Gọn...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {rg_tap_x} {rg_tap_y}"])
+                time.sleep(1.0)
+            else:
+                self.after(0, self.log_info, "ℹ️ [BẬT] Giao diện KHÔNG KHỚP ảnh mẫu 'a_rutgon.png' (Đã Bật sẵn) ➔ Bỏ qua.")
+        else:
+            if rg_x is not None and rg_y is not None:
+                self.after(0, self.log_info, "ℹ️ [TẮT] Giao diện ĐÃ KHỚP ảnh mẫu 'a_rutgon.png' (Đã Tắt sẵn) ➔ Bỏ qua để Tắt Rút Gọn.")
+            else:
+                self.after(0, self.log_info, f"🎯 [TẮT] Giao diện KHÔNG KHỚP ảnh mẫu 'a_rutgon.png' ➔ Click vào ({rg_tap_x}, {rg_tap_y}) để Tắt Rút Gọn...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {rg_tap_x} {rg_tap_y}"])
+                time.sleep(1.0)
+
+        self.after(0, self.log_info, f"5. Click vào tọa độ ({end_x}, {end_y})...")
+        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {end_x} {end_y}"])
+        time.sleep(1.0)
+
+        self.after(0, self.log_info, f"6. Click lại nút xanh lá ({px_x}, {px_y}) để thu gọn menu...")
+        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {px_x} {px_y}"])
+        time.sleep(1.0)
+
+        if has_rut_gon:
+            self.after(0, self.log_info, "7. Hoàn thành thao tác Rút Gọn (giữ nguyên ô tích).")
+
+        # =========================================================================
+        # 📌 6. QUÉT CLICK NÚT AI TÍM ('a_aitim.png') SAU KHI HOÀN THÀNH BƯỚC 5
+        # =========================================================================
+        if self._should_stop_di_gioi(): return
+        self.after(0, self.log_info, "▶️ [DỊ GIỚI - Bước 6] Quét kiểm tra nút AI Tím 'a_aitim.png' (85%)...")
+        aitim_x, aitim_y = self._find_template_on_screen(dnconsole_path, tab_index, "a_aitim.png", threshold=0.85)
+        if aitim_x is not None and aitim_y is not None:
+            self.after(0, self.log_info, f"🎯 Mắt thần phát hiện nút AI Tím 'a_aitim.png' tại ({aitim_x}, {aitim_y})! Click chọn ngay...")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {aitim_x} {aitim_y}"])
+            time.sleep(1.0)
+        else:
+            self.after(0, self.log_info, "⚠️ Không phát hiện thấy ảnh 'a_aitim.png' trên màn hình ➔ Tiến hành Thoát Game...")
+            # Đóng ứng dụng game trên LDPlayer
+            self._exec_cmd([dnconsole_path, "killapp", "--index", str(tab_index)])
+            for pkg in ["com.chinesegamer.tsotw", "com.chinesegamer.tsorigin", "com.vng.tsorigin", "com.vtc.tsorigin"]:
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell am force-stop {pkg}"])
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input keyevent 3"])
+            time.sleep(1.0)
 
     def _execute_card_E_phu_ban_doi(self, dnconsole_path: str, tab_name: str, tab_index: str):
         """Thực thi Card 2: PHỤ BẢN ĐƠN / ĐỘI (E)"""
@@ -2649,56 +2966,59 @@ class ToolLDPlayerGUI(ctk.CTk):
             self.after(0, self.log_info, "ℹ️ Không tìm thấy 'card_c/c_dichuyen.png' ➔ Chuyển qua PHẦN 3: DI CHUYỂN.")
             return False
 
-    def _run_boss_workflow(self, dnconsole_path: str, tab_name: str, tab_index: str, max_turns: int = 5):
+    def _run_boss_workflow(self, dnconsole_path: str, tab_name: str, tab_index: str, max_turns: int = 5, skip_move: bool = False):
         """QUY TRÌNH THỰC THI THAO TÁC ĐÁNH BOSS THẾ GIỚI (PHẦN THÊM -> PHẦN 3 -> PHẦN 4 với số lượt max_turns)"""
         if self._should_stop_card_C(): return
 
-        skip_di_chuyen = self._run_boss_pre_move(dnconsole_path, tab_index)
+        if not skip_move:
+            skip_di_chuyen = self._run_boss_pre_move(dnconsole_path, tab_index)
 
-        if not skip_di_chuyen:
-            # 📌 PHẦN 3: DI CHUYỂN
-            self.after(0, self.log_info, "🚀 [Boss - Di Chuyển] Nghỉ 3s ➔ (1115, 87) ➔ (1223, 227) ➔ (1235, 551) ➔ (1178, 405) ➔ (704, 196) ➔ (1115, 87)...")
-            for _ in range(3):
+            if not skip_di_chuyen:
+                # 📌 PHẦN 3: DI CHUYỂN
+                self.after(0, self.log_info, "🚀 [Boss - Di Chuyển] Nghỉ 3s ➔ (1115, 87) ➔ (1223, 227) ➔ (1235, 551) ➔ (1178, 405) ➔ (704, 196) ➔ (1115, 87)...")
+                for _ in range(3):
+                    if self._should_stop_card_C(): return
+                    time.sleep(1.0)
+
                 if self._should_stop_card_C(): return
+                self.after(0, self.log_info, "👉 [Boss - Di Chuyển] Click (1115, 87)...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1115 87"])
                 time.sleep(1.0)
 
-            if self._should_stop_card_C(): return
-            self.after(0, self.log_info, "👉 [Boss - Di Chuyển] Click (1115, 87)...")
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1115 87"])
-            time.sleep(1.0)
-
-            if self._should_stop_card_C(): return
-            self.after(0, self.log_info, "👉 [Boss - Di Chuyển] Click (1223, 227) ➔ Nghỉ 5s...")
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1223 227"])
-            for _ in range(5):
                 if self._should_stop_card_C(): return
-                time.sleep(1.0)
+                self.after(0, self.log_info, "👉 [Boss - Di Chuyển] Click (1223, 227) ➔ Nghỉ 5s...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1223 227"])
+                for _ in range(5):
+                    if self._should_stop_card_C(): return
+                    time.sleep(1.0)
 
-            if self._should_stop_card_C(): return
-            self.after(0, self.log_info, "👉 [Boss - Di Chuyển] Click (1235, 551) ➔ Nghỉ 4s...")
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1235 551"])
-            for _ in range(4):
                 if self._should_stop_card_C(): return
-                time.sleep(1.0)
+                self.after(0, self.log_info, "👉 [Boss - Di Chuyển] Click (1235, 551) ➔ Nghỉ 4s...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1235 551"])
+                for _ in range(4):
+                    if self._should_stop_card_C(): return
+                    time.sleep(1.0)
 
-            if self._should_stop_card_C(): return
-            self.after(0, self.log_info, "👉 [Boss - Di Chuyển] Click (1178, 405) ➔ Nghỉ 4s...")
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1178 405"])
-            for _ in range(4):
                 if self._should_stop_card_C(): return
-                time.sleep(1.0)
+                self.after(0, self.log_info, "👉 [Boss - Di Chuyển] Click (1178, 405) ➔ Nghỉ 4s...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1178 405"])
+                for _ in range(4):
+                    if self._should_stop_card_C(): return
+                    time.sleep(1.0)
 
-            if self._should_stop_card_C(): return
-            self.after(0, self.log_info, "👉 [Boss - Di Chuyển] Click (704, 196) ➔ Nghỉ 2s...")
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 704 196"])
-            for _ in range(2):
                 if self._should_stop_card_C(): return
-                time.sleep(1.0)
+                self.after(0, self.log_info, "👉 [Boss - Di Chuyển] Click (704, 196) ➔ Nghỉ 2s...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 704 196"])
+                for _ in range(2):
+                    if self._should_stop_card_C(): return
+                    time.sleep(1.0)
 
-            if self._should_stop_card_C(): return
-            self.after(0, self.log_info, "👉 [Boss - Di Chuyển] Click (1115, 87)...")
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1115 87"])
-            time.sleep(1.0)
+                if self._should_stop_card_C(): return
+                self.after(0, self.log_info, "👉 [Boss - Di Chuyển] Click (1115, 87)...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1115 87"])
+                time.sleep(1.0)
+        else:
+            self.after(0, self.log_info, "ℹ️ [Vé] Bỏ qua quy trình dịch chuyển / di chuyển đến vị trí Boss (từ lượt 2 trở đi)...")
 
         # 📌 PHẦN 4: ĐÁNH BOSS THẾ GIỚI - QUY TRÌNH "BOSS"
         self.after(0, self.log_info, f"🔄 [Boss] Bắt đầu thực thi {max_turns} lượt đánh...")
@@ -2834,9 +3154,13 @@ class ToolLDPlayerGUI(ctk.CTk):
                 self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {lx_x2} {lx_y2}"])
                 time.sleep(0.5)
 
-            # Chạy thao tác của ô check Boss nhưng PHẦN 4 chỉ chạy 1 turn đầu tiên!
-            self.after(0, self.log_info, f"🚀 [Vé - Lượt {ve_idx}/{num_ve}] Khởi chạy quy trình Boss (chỉ chạy 1 turn ở PHẦN 4)...")
-            self._run_boss_workflow(dnconsole_path, tab_name, tab_index, max_turns=1)
+            # Từ lượt vé thứ 2 trở đi (ve_idx >= 2), bỏ qua quy trình dịch chuyển / di chuyển đến Boss
+            skip_move = (ve_idx >= 2)
+            if skip_move:
+                self.after(0, self.log_info, f"🚀 [Vé - Lượt {ve_idx}/{num_ve}] Bỏ qua di chuyển (từ lượt 2 trở đi) ➔ Khởi chạy thẳng quy trình Đánh Boss...")
+            else:
+                self.after(0, self.log_info, f"🚀 [Vé - Lượt {ve_idx}/{num_ve}] Khởi chạy quy trình Boss (chỉ chạy 1 turn)...")
+            self._run_boss_workflow(dnconsole_path, tab_name, tab_index, max_turns=1, skip_move=skip_move)
 
     def _execute_card_C_boss_tg(self, dnconsole_path: str, tab_name: str, tab_index: str):
         """Thực thi Card 2: BOSS THẾ GIỚI (C)"""
@@ -2973,10 +3297,9 @@ class ToolLDPlayerGUI(ctk.CTk):
             return
 
         checked = [
-            ("D1", self.var_D1),
-            ("D2", self.var_D2),
-            ("D3", self.var_D3),
-            ("D4", self.var_D4)
+            ("Khu", self.var_D1),
+            ("Tổ Đội", self.var_D2),
+            ("Sự Kiện", self.var_D3)
         ]
         active_items = [(name, var) for name, var in checked if var.get()]
         if not active_items:
@@ -2985,8 +3308,19 @@ class ToolLDPlayerGUI(ctk.CTk):
             self.after(0, self.save_config)
             return
 
-        item_names = [name for name, var in active_items]
-        self.after(0, self.log_info, f"▶️ [5/6: 40 NPC] Đang thực thi {len(item_names)} mục đã chọn: {', '.join(item_names)}...")
+        selected_khu = self.combo_D_khu.get() if hasattr(self, 'combo_D_khu') else "Cố Định"
+        selected_team_char = self.combo_D_team_char.get() if hasattr(self, 'combo_D_team_char') else "Xuất Chiến"
+        selected_tang = self.combo_D_tang.get() if hasattr(self, 'combo_D_tang') else "35"
+
+        info_details = []
+        if self.var_D1.get():
+            info_details.append(f"Khu (STT: '{selected_khu}')")
+        if self.var_D2.get():
+            info_details.append(f"Tổ Đội (Vị trí: '{selected_team_char}')")
+        if self.var_D3.get():
+            info_details.append(f"Sự Kiện (Tầng: '{selected_tang}')")
+
+        self.after(0, self.log_info, f"▶️ [5/6: 40 NPC] Đang thực thi {len(info_details)} mục đã chọn: {', '.join(info_details)}...")
         time.sleep(1.0)
 
         # Tự động tắt công tắc ON/OFF (False) sau khi hoàn thành, giữ nguyên các ô check
