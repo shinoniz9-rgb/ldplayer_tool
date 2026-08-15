@@ -3632,17 +3632,26 @@ class ToolLDPlayerGUI(ctk.CTk):
 
             # [Bước 4 của Lượt] - Bắt đầu chiến đấu:
             if self._should_stop_card_C(): return
-            self.after(0, self.log_info, f"⏳ [Lượt {turn} - Bước 4] Đợi 2.0 giây trước khi click (185, 145)...")
+            self.after(0, self.log_info, f"⏳ [Lượt {turn}/{max_turns} - Bước 4] Đợi 2.0 giây trước khi click (185, 145)...")
             for _ in range(2):
                 if self._should_stop_card_C(): return
                 time.sleep(1.0)
 
             if self._should_stop_card_C(): return
-            self.after(0, self.log_info, f"👉 [Lượt {turn} - Bước 4] Click (185, 145) ➔ Hoãn 60s...")
+            self.after(0, self.log_info, f"👉 [Lượt {turn}/{max_turns} - Bước 4] Click (185, 145) vào trận ➔ Hoãn 60s...")
             self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 185 145"])
             for _ in range(60):
                 if self._should_stop_card_C(): return
                 time.sleep(1.0)
+
+            if self._should_stop_card_C(): return
+            self.after(0, self.log_info, f"👁️ [Lượt {turn}/{max_turns} - Bước 4] Quét tìm ảnh 'card_c/c_dung.png' (85%) mỗi 0.5s cho đến khi thấy...")
+            while not self._should_stop_card_C():
+                d_x, d_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_c/c_dung.png", threshold=0.85)
+                if d_x is not None and d_y is not None:
+                    self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_c/c_dung.png' tại ({d_x}, {d_y})! Kết thúc lượt {turn}.")
+                    break
+                time.sleep(0.5)
 
     def _run_boss_ve_process(self, dnconsole_path: str, tab_name: str, tab_index: str, num_ve: int):
         """THAO TÁC Ô CHECK VÉ (var_C3)"""
