@@ -27,11 +27,11 @@ class ToolLDPlayerGUI(ctk.CTk):
 
         # --- CẤU HÌNH CỬA SỔ CHÍNH ---
         self.title("TS Origin-Control")
-        self.geometry("1121x691")
-        self.minsize(927, 583)
-        self._center_window(1121, 691)
+        self.geometry("1208x766")
+        self.minsize(1050, 640)
+        self._center_window(1208, 766)
 
-    def _center_window(self, width: int = 1121, height: int = 691):
+    def _center_window(self, width: int = 1208, height: int = 766):
         """Căn giữa cửa sổ ứng dụng trên màn hình Desktop"""
         self.update_idletasks()
         screen_width = self.winfo_screenwidth()
@@ -87,21 +87,21 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.var_E3 = ctk.BooleanVar(value=False)
         self.var_E4 = ctk.BooleanVar(value=False)
 
-        # Biến trạng thái các ô Checkbox Cấu hình F
+        # Biến trạng thái các ô Checkbox Cấu hình F (NHỊ KIỀU - Chuẩn giao diện như 40 NPC)
         self.var_F1 = ctk.BooleanVar(value=False)
         self.var_F2 = ctk.BooleanVar(value=False)
         self.var_F3 = ctk.BooleanVar(value=False)
         self.var_F4 = ctk.BooleanVar(value=False)
+        self.var_F_chuyen_khu = ctk.BooleanVar(value=False)
 
-        # Biến trạng thái các ô Checkbox Cấu hình G (PHỤ BẢN ĐƠN)
-        self.var_G1 = ctk.BooleanVar(value=False)
-        self.var_G2 = ctk.BooleanVar(value=False)
-        self.var_G3 = ctk.BooleanVar(value=False)
-        self.var_G4 = ctk.BooleanVar(value=False)
-        self.var_G_nv1 = ctk.BooleanVar(value=False)
-        self.var_G_nv2 = ctk.BooleanVar(value=False)
-        self.var_G_nv3 = ctk.BooleanVar(value=False)
-        self.var_G_nv4 = ctk.BooleanVar(value=False)
+        # Biến trạng thái trong Card Tổ Đội:
+        # - Danh Sách A: Danh sách đồng bộ từ folder ảnh (Bên trái, 100px)
+        # - Danh Sách B: Danh sách chạy thao tác (Bên phải, 100px, giao diện 100% y hệt Danh Sách A)
+        self.selected_G_list_A_char = ""
+        self.selected_G_list_B_char = ""
+        self.list_G_B = []  # List tên nhân vật đã add sang Danh Sách B
+        self.btn_G_list_A_dict = {}  # Các button bên Danh Sách A
+        self.btn_G_list_B_dict = {}  # Các button bên Danh Sách B
 
         # Biến trạng thái Dừng khẩn cấp
         self.stop_requested = False
@@ -151,6 +151,175 @@ class ToolLDPlayerGUI(ctk.CTk):
         return servers
 
 
+    def _get_nhanvat_options(self) -> list:
+        """Danh sách tên nhân vật quét động từ các file ảnh thực tế trong folder assets/nhanvat"""
+        names = []
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        assets_dir = os.path.join(base_dir, "assets")
+        nhanvat_dir = os.path.join(assets_dir, "nhanvat")
+
+        if not os.path.exists(nhanvat_dir):
+            try:
+                os.makedirs(nhanvat_dir, exist_ok=True)
+            except Exception:
+                pass
+
+        if os.path.exists(nhanvat_dir):
+            try:
+                valid_exts = ('.png', '.jpg', '.jpeg', '.webp', '.bmp')
+                for f in sorted(os.listdir(nhanvat_dir)):
+                    if f.lower().endswith(valid_exts):
+                        name_without_ext = os.path.splitext(f)[0]
+                        if name_without_ext and name_without_ext not in names:
+                            names.append(name_without_ext)
+            except Exception:
+                pass
+
+        return names
+
+    def _get_nhanvat_options(self) -> list:
+        """Danh sách tên nhân vật quét động cho [Danh Sách A] từ các file ảnh thực tế trong folder assets/nhanvat"""
+        names = []
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        assets_dir = os.path.join(base_dir, "assets")
+        nhanvat_dir = os.path.join(assets_dir, "nhanvat")
+
+        if not os.path.exists(nhanvat_dir):
+            try:
+                os.makedirs(nhanvat_dir, exist_ok=True)
+            except Exception:
+                pass
+
+        if os.path.exists(nhanvat_dir):
+            try:
+                valid_exts = ('.png', '.jpg', '.jpeg', '.webp', '.bmp')
+                for f in sorted(os.listdir(nhanvat_dir)):
+                    if f.lower().endswith(valid_exts):
+                        name_without_ext = os.path.splitext(f)[0]
+                        if name_without_ext and name_without_ext not in names:
+                            names.append(name_without_ext)
+            except Exception:
+                pass
+
+        return names
+
+    def _select_G_list_A_item(self, char_name: str):
+        """Chọn tên nhân vật bên [Danh Sách A] (đồng bộ folder ảnh)"""
+        self.selected_G_list_A_char = char_name
+        self._update_G_list_A_ui()
+
+    def _update_G_list_A_ui(self):
+        """Cập nhật màu sắc highlight tên được chọn trong [Danh Sách A] bên trái"""
+        if not hasattr(self, 'btn_G_list_A_dict'):
+            return
+        selected = getattr(self, 'selected_G_list_A_char', "")
+        for name, btn in self.btn_G_list_A_dict.items():
+            if name == selected:
+                btn.configure(fg_color="#EA580C", text_color="#FFFFFF", hover_color="#C2410C")
+            else:
+                btn.configure(fg_color="#374151", text_color="#D1D5DB", hover_color="#4B5563")
+
+    def _add_A_to_B_G(self):
+        """Thêm nhân vật đang chọn từ [Danh Sách A] sang [Danh Sách B] (Danh sách chạy thao tác)"""
+        if not hasattr(self, 'list_G_B'):
+            self.list_G_B = []
+
+        char_name = getattr(self, 'selected_G_list_A_char', "")
+        if not char_name:
+            opts_A = self._get_nhanvat_options()
+            if opts_A:
+                char_name = opts_A[0]
+                self.selected_G_list_A_char = char_name
+
+        if not char_name:
+            return
+
+        if char_name not in self.list_G_B:
+            self.list_G_B.append(char_name)
+            self._render_G_list_B_ui()
+            self.save_config()
+
+    def _remove_B_item_G(self, char_name: str):
+        """Xóa nhân vật khỏi [Danh Sách B] bên phải"""
+        if hasattr(self, 'list_G_B') and char_name in self.list_G_B:
+            self.list_G_B.remove(char_name)
+            self._render_G_list_B_ui()
+            self.save_config()
+
+    def _select_G_list_B_item(self, char_name: str):
+        """Chọn tên nhân vật trong [Danh Sách B]"""
+        self.selected_G_list_B_char = char_name
+        self._update_G_list_B_ui()
+
+    def _update_G_list_B_ui(self):
+        """Cập nhật màu sắc highlight nút đại diện cho tên trong [Danh Sách B]"""
+        if not hasattr(self, 'btn_G_list_B_dict'):
+            return
+        selected = getattr(self, 'selected_G_list_B_char', "")
+        for name, btn in self.btn_G_list_B_dict.items():
+            if name == selected:
+                btn.configure(fg_color="#EA580C", text_color="#FFFFFF", hover_color="#C2410C")
+            else:
+                btn.configure(fg_color="#374151", text_color="#D1D5DB", hover_color="#4B5563")
+
+    def _render_G_list_B_ui(self):
+        """Vẽ lại các phần tử trong [Danh Sách B] bên phải (giao diện CTkButton 100% y hệt chữ, nền, hình dáng của Danh Sách A)"""
+        if not hasattr(self, 'scroll_G_list_B'):
+            return
+
+        for w in self.scroll_G_list_B.winfo_children():
+            w.destroy()
+
+        self.btn_G_list_B_dict = {}
+
+        if not getattr(self, 'list_G_B', []):
+            lbl_empty = ctk.CTkLabel(
+                self.scroll_G_list_B,
+                text="(Bấm ➔ để thêm)",
+                font=ctk.CTkFont(family="Segoe UI", size=10, weight="normal"),
+                text_color="gray50"
+            )
+            lbl_empty.pack(pady=10)
+            return
+
+        selected_B = getattr(self, 'selected_G_list_B_char', "")
+        if not selected_B and self.list_G_B:
+            selected_B = self.list_G_B[0]
+            self.selected_G_list_B_char = selected_B
+
+        for char_name in list(self.list_G_B):
+            row_frame = ctk.CTkFrame(self.scroll_G_list_B, fg_color="transparent")
+            row_frame.pack(fill="x", padx=1, pady=2)
+            row_frame.grid_columnconfigure(0, weight=1)
+            row_frame.grid_columnconfigure(1, weight=0)
+
+            btn = ctk.CTkButton(
+                row_frame,
+                text=char_name,
+                height=22,
+                font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
+                anchor="w",
+                fg_color="#EA580C" if char_name == selected_B else "#374151",
+                text_color="#FFFFFF" if char_name == selected_B else "#D1D5DB",
+                hover_color="#C2410C" if char_name == selected_B else "#4B5563",
+                command=lambda n=char_name: self._select_G_list_B_item(n)
+            )
+            btn.grid(row=0, column=0, sticky="ew", padx=(0, 1))
+
+            btn_del = ctk.CTkButton(
+                row_frame,
+                text="✕",
+                width=16,
+                height=22,
+                font=ctk.CTkFont(family="Segoe UI", size=9, weight="bold"),
+                fg_color="transparent",
+                text_color="#EF4444",
+                hover_color=("#E5E7EB", "#374151"),
+                command=lambda n=char_name: self._remove_B_item_G(n)
+            )
+            btn_del.grid(row=0, column=1, sticky="e")
+            self.btn_G_list_B_dict[char_name] = btn
+
     def _update_card_G_visibility(self):
         """Cập nhật trạng thái sáng/tối & khóa tùy chỉnh của Card 3 (TỔ ĐỘI) theo ô check 'Tổ Đội' ở Card E hoặc Card 40 NPC (Card D)"""
         if not hasattr(self, 'card_G'):
@@ -160,27 +329,27 @@ class ToolLDPlayerGUI(ctk.CTk):
         if is_doi_checked:
             # SÁNG LÊN: Bật trạng thái tùy chỉnh và khôi phục màu tiêu đề sáng
             if hasattr(self, 'lbl_G'): self.lbl_G.configure(text_color="#FB923C")
-            if hasattr(self, 'lbl_tuong'): self.lbl_tuong.configure(text_color="#38BDF8")
-            if hasattr(self, 'lbl_nhanvat'): self.lbl_nhanvat.configure(text_color="#38BDF8")
-            for num in range(1, 5):
-                chk = getattr(self, f"chk_G{num}", None)
-                if chk: chk.configure(state="normal", text_color=("gray10", "gray90"))
-                chk_nv = getattr(self, f"chk_G_nv{num}", None)
-                if chk_nv: chk_nv.configure(state="normal", text_color=("gray10", "gray90"))
+            if hasattr(self, 'btn_G_add'): self.btn_G_add.configure(state="normal", fg_color="#EA580C")
+            if hasattr(self, 'btn_G_list_A_dict'):
+                for name, btn in self.btn_G_list_A_dict.items():
+                    btn.configure(state="normal")
+                self._update_G_list_A_ui()
+            if hasattr(self, 'btn_G_list_B_dict'):
+                for name, btn in self.btn_G_list_B_dict.items():
+                    btn.configure(state="normal")
+                self._update_G_list_B_ui()
+            self._render_G_list_B_ui()
         else:
-            # TỐI ĐI / KHÓA: Đổi màu tiêu đề mờ, khóa click & reset các ô check
+            # TỐI ĐI / KHÓA: Đổi màu tiêu đề mờ, khóa click
             if hasattr(self, 'lbl_G'): self.lbl_G.configure(text_color="#9CA3AF")
-            if hasattr(self, 'lbl_tuong'): self.lbl_tuong.configure(text_color="#9CA3AF")
-            if hasattr(self, 'lbl_nhanvat'): self.lbl_tuong.configure(text_color="#9CA3AF")
-            for num in range(1, 5):
-                var = getattr(self, f"var_G{num}", None)
-                if var: var.set(False)
-                chk = getattr(self, f"chk_G{num}", None)
-                if chk: chk.configure(state="disabled", text_color="gray50")
-                var_nv = getattr(self, f"var_G_nv{num}", None)
-                if var_nv: var_nv.set(False)
-                chk_nv = getattr(self, f"chk_G_nv{num}", None)
-                if chk_nv: chk_nv.configure(state="disabled", text_color="gray50")
+            if hasattr(self, 'btn_G_add'): self.btn_G_add.configure(state="disabled", fg_color="#374151")
+            if hasattr(self, 'btn_G_list_A_dict'):
+                for name, btn in self.btn_G_list_A_dict.items():
+                    btn.configure(state="disabled", fg_color="#27272A", text_color="gray50")
+            if hasattr(self, 'btn_G_list_B_dict'):
+                for name, btn in self.btn_G_list_B_dict.items():
+                    btn.configure(state="disabled", fg_color="#27272A", text_color="gray50")
+            self._render_G_list_B_ui()
 
     def save_config(self):
         """Lưu toàn bộ cấu hình máy chủ & checkbox vào config.json một cách an toàn"""
@@ -213,6 +382,15 @@ class ToolLDPlayerGUI(ctk.CTk):
             if hasattr(self, 'var_pause_D'):
                 config["pause_D"] = self.var_pause_D.get()
 
+            if hasattr(self, 'combo_F_khu'):
+                config["F_khu"] = self.combo_F_khu.get()
+            if hasattr(self, 'combo_F_team_char'):
+                config["F_team_char"] = self.combo_F_team_char.get()
+            if hasattr(self, 'combo_F_tang'):
+                config["F_tang"] = self.combo_F_tang.get()
+            if hasattr(self, 'var_F_chuyen_khu'):
+                config["F_chuyen_khu"] = self.var_F_chuyen_khu.get()
+
             for prefix in ["B", "C", "D", "E", "F"]:
                 switch_attr = f"var_switch_{prefix}"
                 if hasattr(self, switch_attr):
@@ -227,13 +405,10 @@ class ToolLDPlayerGUI(ctk.CTk):
                     if hasattr(self, var_attr):
                         config[key] = getattr(self, var_attr).get()
 
-            for num in range(1, 5):
-                key = f"G{num}"
-                var_attr = f"var_{key}"
-                if hasattr(self, var_attr):
-                    config[key] = getattr(self, var_attr).get()
-                if hasattr(self, f"var_G_nv{num}"):
-                    config[f"G_nv{num}"] = getattr(self, f"var_G_nv{num}").get()
+            if hasattr(self, 'list_G_B'):
+                config["G_list_B"] = list(self.list_G_B)
+            if hasattr(self, 'selected_G_list_A_char'):
+                config["G_selected_left"] = self.selected_G_list_A_char
 
             if hasattr(self, 'combo_ld_tabs'):
                 config["selected_tab"] = self.combo_ld_tabs.get()
@@ -287,6 +462,18 @@ class ToolLDPlayerGUI(ctk.CTk):
                 if "pause_D" in config and hasattr(self, 'var_pause_D'):
                     self.var_pause_D.set(config["pause_D"])
 
+                if "F_khu" in config and hasattr(self, 'combo_F_khu'):
+                    val = config["F_khu"]
+                    self.combo_F_khu.set(val if val in ["Cố Định"] + [f"Khu {i}" for i in range(1, 11)] else "Cố Định")
+                if "F_team_char" in config and hasattr(self, 'combo_F_team_char'):
+                    val = config["F_team_char"]
+                    self.combo_F_team_char.set(val if val in opts else "Xuất Chiến")
+                if "F_tang" in config and hasattr(self, 'combo_F_tang'):
+                    val = config["F_tang"]
+                    self.combo_F_tang.set(val if val in ["35", "36", "37", "38"] else "35")
+                if "F_chuyen_khu" in config and hasattr(self, 'var_F_chuyen_khu'):
+                    self.var_F_chuyen_khu.set(config["F_chuyen_khu"])
+
                 for prefix in ["B", "C", "D", "E", "F"]:
                     switch_attr = f"var_switch_{prefix}"
                     if hasattr(self, switch_attr):
@@ -302,11 +489,13 @@ class ToolLDPlayerGUI(ctk.CTk):
                         if key in config and hasattr(self, var_attr):
                             getattr(self, var_attr).set(config[key])
 
-                for num in range(1, 5):
-                    key = f"G{num}"
-                    var_attr = f"var_{key}"
-                    if key in config and hasattr(self, var_attr):
-                        getattr(self, var_attr).set(config[key])
+                if "G_selected_left" in config:
+                    self.selected_G_list_A_char = config["G_selected_left"]
+
+                if "G_list_B" in config and isinstance(config["G_list_B"], list):
+                    self.list_G_B = list(config["G_list_B"])
+                    self._render_G_list_B_ui()
+                self._update_G_list_A_ui()
 
                 if "selected_tab" in config and hasattr(self, 'combo_ld_tabs'):
                     self.saved_selected_tab = config["selected_tab"]
@@ -706,6 +895,15 @@ class ToolLDPlayerGUI(ctk.CTk):
             self.log_info("▶️ [40 NPC] Nhả ô Dừng ➔ Khôi phục chạy tiếp 40 NPC!")
         self.save_config()
 
+    def _on_chk_F_chuyen_khu_toggled(self):
+        """Callback công tắc Chuyển Khu ở Card Nhị Kiều"""
+        self._on_checkbox_toggled()
+        if hasattr(self, 'var_F_chuyen_khu') and self.var_F_chuyen_khu.get():
+            self.log_info("⚡ [NHỊ KIỀU] Đã bật công tắc 'Chuyển Khu'!")
+        else:
+            self.log_info("ℹ️ [NHỊ KIỀU] Đã tắt công tắc 'Chuyển Khu'.")
+        self.save_config()
+
     def _on_pause_F_toggled(self):
         """Callback nút Dừng ở Card Nhị Kiều"""
         self._on_checkbox_toggled()
@@ -753,10 +951,10 @@ class ToolLDPlayerGUI(ctk.CTk):
         """Khung chứa 6 Card Cấu hình (Layout 2 hàng x 3 cột)"""
         self.container_cfg = ctk.CTkFrame(self, fg_color="transparent")
         self.container_cfg.grid(row=3, column=0, padx=(15, 4), pady=4, sticky="nsew")
-        self.container_cfg.grid_columnconfigure(0, weight=24)
-        self.container_cfg.grid_columnconfigure(1, weight=13)  # Giảm 20% chiều ngang Cột 1 (Card Boss Thế Giới & Card 40 NPC) từ 16 xuống 13
-        self.container_cfg.grid_columnconfigure(2, weight=63)
-        self.container_cfg.grid_rowconfigure((0, 1), weight=1)
+        self.container_cfg.grid_columnconfigure(0, weight=380)  # Card Phụ Bản & Card Tổ Đội (380px)
+        self.container_cfg.grid_columnconfigure(1, weight=260)  # Card Boss & Card 40 NPC
+        self.container_cfg.grid_columnconfigure(2, weight=200)  # Card Dị Giới & Card Nhị Kiều
+        self.container_cfg.grid_rowconfigure((0, 1), weight=1, uniform="card_rows")  # Chia đều 1/2 chiều cao cho cả 2 hàng Card
 
         # ------------------- CARD 1: PHỤ BẢN ĐƠN / ĐỘI (Cột 0, Row 0) -------------------
         self.card_E = ctk.CTkFrame(self.container_cfg, corner_radius=10)
@@ -1076,7 +1274,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.card_G.grid(row=1, column=0, padx=(0, 2), pady=(4, 0), sticky="nsew")
         self.card_G.grid_columnconfigure(0, weight=1)
         self.card_G.grid_rowconfigure(0, weight=0)
-        self.card_G.grid_rowconfigure((1, 2, 3, 4), weight=1)
+        self.card_G.grid_rowconfigure(1, weight=1)
 
         hdr_G = ctk.CTkFrame(self.card_G, fg_color="transparent")
         hdr_G.grid(row=0, column=0, padx=8, pady=(6, 2), sticky="ew")
@@ -1088,17 +1286,86 @@ class ToolLDPlayerGUI(ctk.CTk):
         dummy_G = ctk.CTkFrame(hdr_G, width=36, height=18, fg_color="transparent")
         dummy_G.grid(row=0, column=1, sticky="e")
 
-        self.chk_G1 = ctk.CTkCheckBox(self.card_G, text="G1", variable=self.var_G1, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#EA580C", hover_color="#C2410C", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
-        self.chk_G1.grid(row=1, column=0, padx=12, pady=2, sticky="w")
+        # Khung chứa 2 Bảng danh sách và Nút Mũi Tên ➔ ở giữa (70px)
+        body_G = ctk.CTkFrame(self.card_G, fg_color="transparent")
+        body_G.grid(row=1, column=0, padx=6, pady=(2, 6), sticky="nsew")
+        body_G.grid_columnconfigure(0, weight=0, minsize=105)
+        body_G.grid_columnconfigure(1, weight=0, minsize=70)
+        body_G.grid_columnconfigure(2, weight=0, minsize=115)
+        body_G.grid_rowconfigure(0, weight=1)
 
-        self.chk_G2 = ctk.CTkCheckBox(self.card_G, text="G2", variable=self.var_G2, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#EA580C", hover_color="#C2410C", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
-        self.chk_G2.grid(row=2, column=0, padx=12, pady=2, sticky="w")
+        # 1. Bảng [Danh Sách A] đồng bộ từ folder ảnh (Bên trái, 100px)
+        self.scroll_G_list_A = ctk.CTkScrollableFrame(
+            body_G,
+            width=100,
+            fg_color=("gray95", "#1F2937"),
+            corner_radius=6,
+            scrollbar_button_color="#4B5563",
+            scrollbar_button_hover_color="#6B7280"
+        )
+        self.scroll_G_list_A.grid(row=0, column=0, sticky="nsew")
+        self.scroll_G_list_A.grid_columnconfigure(0, weight=1)
 
-        self.chk_G3 = ctk.CTkCheckBox(self.card_G, text="G3", variable=self.var_G3, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#EA580C", hover_color="#C2410C", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
-        self.chk_G3.grid(row=3, column=0, padx=12, pady=2, sticky="w")
+        # 2. Khung ở giữa chứa Nút Mũi Tên ➔ (70px, height=25px)
+        frame_mid_G = ctk.CTkFrame(body_G, fg_color="transparent")
+        frame_mid_G.grid(row=0, column=1, sticky="ns", padx=2)
 
-        self.chk_G4 = ctk.CTkCheckBox(self.card_G, text="G4", variable=self.var_G4, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#EA580C", hover_color="#C2410C", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
-        self.chk_G4.grid(row=4, column=0, padx=12, pady=(0, 6), sticky="w")
+        self.btn_G_add = ctk.CTkButton(
+            frame_mid_G,
+            text="➔",
+            width=42,
+            height=25,
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            fg_color="#EA580C",
+            hover_color="#C2410C",
+            command=self._add_A_to_B_G
+        )
+        self.btn_G_add.pack(expand=True)
+
+        # 3. Bảng [Danh Sách B] bên phải (Bảng B 110px, không ô check, add tên qua là tự động chạy thao tác)
+        self.scroll_G_list_B = ctk.CTkScrollableFrame(
+            body_G,
+            width=110,
+            fg_color=("gray95", "#1F2937"),
+            corner_radius=6,
+            scrollbar_button_color="#4B5563",
+            scrollbar_button_hover_color="#6B7280"
+        )
+        self.scroll_G_list_B.grid(row=0, column=2, sticky="nsew")
+        self.scroll_G_list_B.grid_columnconfigure(0, weight=1)
+
+        # Nạp dữ liệu ban đầu cho Danh Sách A
+        nhanvat_opts = self._get_nhanvat_options()
+        if nhanvat_opts and not getattr(self, 'selected_G_list_A_char', ""):
+            self.selected_G_list_A_char = nhanvat_opts[0]
+
+        self.btn_G_list_A_dict = {}
+
+        if not nhanvat_opts:
+            lbl_empty = ctk.CTkLabel(
+                self.scroll_G_list_A,
+                text="(Chưa có ảnh)",
+                font=ctk.CTkFont(family="Segoe UI", size=10, weight="normal"),
+                text_color="gray50"
+            )
+            lbl_empty.pack(pady=6)
+        else:
+            for char_name in nhanvat_opts:
+                btn = ctk.CTkButton(
+                    self.scroll_G_list_A,
+                    text=char_name,
+                    height=22,
+                    font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
+                    anchor="w",
+                    fg_color="#EA580C" if char_name == self.selected_G_list_A_char else "#374151",
+                    text_color="#FFFFFF" if char_name == self.selected_G_list_A_char else "#D1D5DB",
+                    hover_color="#C2410C" if char_name == self.selected_G_list_A_char else "#4B5563",
+                    command=lambda n=char_name: self._select_G_list_A_item(n)
+                )
+                btn.pack(fill="x", padx=1, pady=2)
+                self.btn_G_list_A_dict[char_name] = btn
+
+        self._render_G_list_B_ui()
 
         # ------------------- CARD 5: 40 NPC (Cột 1, Row 1) -------------------
         self.card_D = ctk.CTkFrame(self.container_cfg, corner_radius=10)
@@ -1215,12 +1482,12 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.combo_D_tang.set("35")
         self.combo_D_tang.grid(row=2, column=1, sticky="w", pady=4)
 
-        # ------------------- CARD 6: NHỊ KIỀU (Cột 2, Row 1) -------------------
+        # ------------------- CARD 6: NHỊ KIỀU (Cột 2, Row 1 - Giao diện chuẩn như Card 40 NPC) -------------------
         self.card_F = ctk.CTkFrame(self.container_cfg, corner_radius=10)
         self.card_F.grid(row=1, column=2, padx=(2, 0), pady=(4, 0), sticky="nsew")
         self.card_F.grid_columnconfigure(0, weight=1)
         self.card_F.grid_rowconfigure(0, weight=0)
-        self.card_F.grid_rowconfigure((1, 2, 3, 4), weight=1)
+        self.card_F.grid_rowconfigure(1, weight=1)
 
         hdr_F = ctk.CTkFrame(self.card_F, fg_color="transparent")
         hdr_F.grid(row=0, column=0, padx=8, pady=(6, 2), sticky="ew")
@@ -1231,6 +1498,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         lbl_F = ctk.CTkLabel(hdr_F, text="NHỊ KIỀU", font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), text_color="#22D3EE")
         lbl_F.grid(row=0, column=0, sticky="w")
 
+        # Nút/ô tích Dừng hoạt động kế bên công tắc
         self.chk_pause_F = ctk.CTkCheckBox(
             hdr_F, text="Tạm Dừng", variable=self.var_pause_F, command=self._on_pause_F_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
@@ -1244,17 +1512,90 @@ class ToolLDPlayerGUI(ctk.CTk):
         )
         self.switch_F.grid(row=0, column=2, sticky="e")
 
-        self.chk_F1 = ctk.CTkCheckBox(self.card_F, text="F1", variable=self.var_F1, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0891B2", hover_color="#0E7490", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
-        self.chk_F1.grid(row=1, column=0, padx=12, pady=2, sticky="w")
+        grid_F_body = ctk.CTkFrame(self.card_F, fg_color="transparent")
+        grid_F_body.grid(row=1, column=0, padx=6, pady=(4, 6), sticky="nsew")
+        grid_F_body.grid_columnconfigure(0, weight=0, minsize=65)
+        grid_F_body.grid_columnconfigure(1, weight=1)
+        grid_F_body.grid_rowconfigure((0, 1, 2), weight=1)
 
-        self.chk_F2 = ctk.CTkCheckBox(self.card_F, text="F2", variable=self.var_F2, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0891B2", hover_color="#0E7490", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
-        self.chk_F2.grid(row=2, column=0, padx=12, pady=2, sticky="w")
+        # 1. Di Chuyển - menu drop Số Thứ Tự (Cố Định, Khu 1..Khu 10)
+        self.chk_F1 = ctk.CTkCheckBox(
+            grid_F_body, text="Di Chuyển", variable=self.var_F1, command=self._on_checkbox_toggled,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            fg_color="#0891B2", hover_color="#0E7490", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
+        )
+        self.chk_F1.grid(row=0, column=0, sticky="w", pady=4)
 
-        self.chk_F3 = ctk.CTkCheckBox(self.card_F, text="F3", variable=self.var_F3, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0891B2", hover_color="#0E7490", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
-        self.chk_F3.grid(row=3, column=0, padx=12, pady=2, sticky="w")
+        box_F_khu = ctk.CTkFrame(grid_F_body, fg_color="transparent")
+        box_F_khu.grid(row=0, column=1, sticky="ew", pady=4)
 
-        self.chk_F4 = ctk.CTkCheckBox(self.card_F, text="F4", variable=self.var_F4, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0891B2", hover_color="#0E7490", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
-        self.chk_F4.grid(row=4, column=0, padx=12, pady=(0, 6), sticky="w")
+        khu_options = ["Cố Định"] + [f"Khu {i}" for i in range(1, 11)]
+        self.combo_F_khu = ctk.CTkOptionMenu(
+            box_F_khu,
+            values=khu_options,
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
+            dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            height=24,
+            width=80,
+            fg_color="#374151",
+            button_color="#4B5563",
+            button_hover_color="#6B7280",
+            command=lambda choice: self._on_checkbox_toggled()
+        )
+        self.combo_F_khu.set("Cố Định")
+        self.combo_F_khu.pack(side="left")
+
+        self.switch_F_chuyen_khu = ctk.CTkSwitch(
+            box_F_khu, text="", variable=self.var_F_chuyen_khu, command=self._on_chk_F_chuyen_khu_toggled,
+            width=36, height=18, switch_width=36, switch_height=18, fg_color="#374151", progress_color="#0891B2"
+        )
+        self.switch_F_chuyen_khu.pack(side="right", padx=(0, 2))
+
+        # 2. Tổ Đội - menu vị trí Xuất Chiến
+        self.chk_F2 = ctk.CTkCheckBox(
+            grid_F_body, text="Tổ Đội", variable=self.var_F2, command=self._on_checkbox_toggled,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            fg_color="#0891B2", hover_color="#0E7490", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
+        )
+        self.chk_F2.grid(row=1, column=0, sticky="w", pady=4)
+
+        self.combo_F_team_char = ctk.CTkOptionMenu(
+            grid_F_body,
+            values=char_options,
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
+            dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            height=24,
+            width=100,
+            fg_color="#374151",
+            button_color="#4B5563",
+            button_hover_color="#6B7280",
+            command=lambda choice: self._on_checkbox_toggled()
+        )
+        self.combo_F_team_char.set(char_options[0] if char_options else "Xuất Chiến")
+        self.combo_F_team_char.grid(row=1, column=1, sticky="w", pady=4)
+
+        # 3. Tầng - menu drop Tầng (35, 36, 37, 38)
+        self.chk_F3 = ctk.CTkCheckBox(
+            grid_F_body, text="Tầng", variable=self.var_F3, command=self._on_checkbox_toggled,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            fg_color="#0891B2", hover_color="#0E7490", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
+        )
+        self.chk_F3.grid(row=2, column=0, sticky="w", pady=4)
+
+        self.combo_F_tang = ctk.CTkOptionMenu(
+            grid_F_body,
+            values=["35", "36", "37", "38"],
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
+            dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            height=24,
+            width=65,
+            fg_color="#374151",
+            button_color="#4B5563",
+            button_hover_color="#6B7280",
+            command=lambda choice: self._on_checkbox_toggled()
+        )
+        self.combo_F_tang.set("35")
+        self.combo_F_tang.grid(row=2, column=1, sticky="w", pady=4)
 
     # --- HÀM CẬP NHẬT TRẠNG THÁI ---
     def log_info(self, message: str):
@@ -3050,20 +3391,13 @@ class ToolLDPlayerGUI(ctk.CTk):
             self.after(0, self.log_info, "ℹ️ [3/6: TỔ ĐỘI] Ô check 'Tổ Đội' ở cả Card Phụ Bản Đội/Đơn và Card 40 NPC đang TẮT (OFF) -> Bỏ qua Card Tổ Đội.")
             return
 
-        checked = [
-            ("G1", self.var_G1),
-            ("G2", self.var_G2),
-            ("G3", self.var_G3),
-            ("G4", self.var_G4)
-        ]
-        active_items = [(name, var) for name, var in checked if var.get()]
-        if not active_items:
-            self.after(0, self.log_info, "ℹ️ [3/6: TỔ ĐỘI] Ô check 'Tổ Đội' được tích nhưng không có mục T1-T4 nào được chọn -> Bỏ qua.")
+        list_B = list(getattr(self, 'list_G_B', []))
+        if not list_B:
+            self.after(0, self.log_info, "ℹ️ [3/6: TỔ ĐỘI] Ô check 'Tổ Đội' được bật nhưng [Danh Sách B] chưa có nhân vật nào -> Bỏ qua.")
             self.after(0, self.save_config)
             return
 
-        item_names = [name for name, var in active_items]
-        self.after(0, self.log_info, f"▶️ [3/6: TỔ ĐỘI] Đang thực thi {len(item_names)} mục đã chọn: {', '.join(item_names)}...")
+        self.after(0, self.log_info, f"▶️ [3/6: TỔ ĐỘI] Đang thực thi {len(list_B)} nhân vật từ [Danh Sách B]: {', '.join(list_B)}...")
         time.sleep(1.0)
 
         # Giữ nguyên trạng thái các ô check sau khi hoàn thành

@@ -107,8 +107,31 @@ def find_and_click_image(template_path, threshold=0.8):
 
 # ================= SCRIPT THỰC THI =================
 
-# 1. Tap tọa độ (300, 120)
-tap(300, 120)
+# 1. Tap tọa độ (1225, 135)
+tap(1225, 135)
+
+# Nghỉ 3 giây
+print("Nghỉ 3 giây...")
+time.sleep(3)
+
+# 2. Quét nhận diện ảnh card_d/d_cong1 và click vào ảnh
+print("Đang quét nhận diện ảnh card_f/f_doi...")
+find_and_click_image("C:\\Users\\Phat\\Downloads\\ldplayer_tool\\assets\\card_f\\f_doi.png", threshold=0.8)
+
+# Nghỉ 3 giây
+print("Nghỉ 3 giây...")
+time.sleep(3)
+
+# 3. Tap tọa độ (235, 195)
+tap(235, 195)
+
+# Nghỉ 3 giây
+print("Nghỉ 3 giây...")
+time.sleep(3)
+
+
+# 4. Tap tọa độ (235, 350)
+tap(235, 350)
 
 # Nghỉ 3 giây
 print("Nghỉ 3 giây...")
