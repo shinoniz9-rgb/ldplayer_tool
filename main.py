@@ -218,7 +218,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             if name == selected:
                 btn.configure(fg_color="#EA580C", text_color="#FFFFFF", hover_color="#C2410C")
             else:
-                btn.configure(fg_color="#374151", text_color="#D1D5DB", hover_color="#4B5563")
+                btn.configure(fg_color="#374151", text_color="#FFFFFF", hover_color="#4B5563")
 
     def _add_A_to_B_G(self):
         """Thêm nhân vật đang chọn từ [Danh Sách A] sang [Danh Sách B] (Danh sách chạy thao tác)"""
@@ -261,7 +261,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             if name == selected:
                 btn.configure(fg_color="#EA580C", text_color="#FFFFFF", hover_color="#C2410C")
             else:
-                btn.configure(fg_color="#374151", text_color="#D1D5DB", hover_color="#4B5563")
+                btn.configure(fg_color="#374151", text_color="#FFFFFF", hover_color="#4B5563")
 
     def _render_G_list_B_ui(self):
         """Vẽ lại các phần tử trong [Danh Sách B] bên phải (giao diện CTkButton 100% y hệt chữ, nền, hình dáng của Danh Sách A)"""
@@ -278,7 +278,7 @@ class ToolLDPlayerGUI(ctk.CTk):
                 self.scroll_G_list_B,
                 text="(Bấm ➔ để thêm)",
                 font=ctk.CTkFont(family="Segoe UI", size=10, weight="normal"),
-                text_color="gray50"
+                text_color="#FFFFFF"
             )
             lbl_empty.pack(pady=10)
             return
@@ -301,7 +301,7 @@ class ToolLDPlayerGUI(ctk.CTk):
                 font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
                 anchor="w",
                 fg_color="#EA580C" if char_name == selected_B else "#374151",
-                text_color="#FFFFFF" if char_name == selected_B else "#D1D5DB",
+                text_color="#FFFFFF",
                 hover_color="#C2410C" if char_name == selected_B else "#4B5563",
                 command=lambda n=char_name: self._select_G_list_B_item(n)
             )
@@ -314,7 +314,7 @@ class ToolLDPlayerGUI(ctk.CTk):
                 height=22,
                 font=ctk.CTkFont(family="Segoe UI", size=9, weight="bold"),
                 fg_color="transparent",
-                text_color="#EF4444",
+                text_color="#FFFFFF",
                 hover_color=("#E5E7EB", "#374151"),
                 command=lambda n=char_name: self._remove_B_item_G(n)
             )
@@ -331,9 +331,9 @@ class ToolLDPlayerGUI(ctk.CTk):
                          (hasattr(self, 'var_F2') and self.var_F2.get())
         if is_doi_checked:
             # SÁNG LÊN: Bật trạng thái tùy chỉnh và khôi phục màu tiêu đề sáng
-            if hasattr(self, 'lbl_G'): self.lbl_G.configure(text_color="#FB923C")
+            if hasattr(self, 'lbl_G'): self.lbl_G.configure(text_color="#2563EB")
             if hasattr(self, 'switch_G'): self.switch_G.configure(state="normal")
-            if hasattr(self, 'btn_G_add'): self.btn_G_add.configure(state="normal", fg_color="#EA580C")
+            if hasattr(self, 'btn_G_add'): self.btn_G_add.configure(state="normal", fg_color="#EA580C", text_color="#FFFFFF")
             if hasattr(self, 'btn_G_list_A_dict'):
                 for name, btn in self.btn_G_list_A_dict.items():
                     btn.configure(state="normal")
@@ -348,13 +348,13 @@ class ToolLDPlayerGUI(ctk.CTk):
             if hasattr(self, 'lbl_G'): self.lbl_G.configure(text_color="#9CA3AF")
             if hasattr(self, 'var_switch_G'): self.var_switch_G.set(False)
             if hasattr(self, 'switch_G'): self.switch_G.configure(state="disabled")
-            if hasattr(self, 'btn_G_add'): self.btn_G_add.configure(state="disabled", fg_color="#374151")
+            if hasattr(self, 'btn_G_add'): self.btn_G_add.configure(state="disabled", fg_color="#374151", text_color="#FFFFFF")
             if hasattr(self, 'btn_G_list_A_dict'):
                 for name, btn in self.btn_G_list_A_dict.items():
-                    btn.configure(state="disabled", fg_color="#27272A", text_color="gray50")
+                    btn.configure(state="disabled", fg_color="#27272A", text_color="#FFFFFF")
             if hasattr(self, 'btn_G_list_B_dict'):
                 for name, btn in self.btn_G_list_B_dict.items():
-                    btn.configure(state="disabled", fg_color="#27272A", text_color="gray50")
+                    btn.configure(state="disabled", fg_color="#27272A", text_color="#FFFFFF")
             self._render_G_list_B_ui()
 
     def _on_switch_G_toggled(self):
@@ -553,7 +553,8 @@ class ToolLDPlayerGUI(ctk.CTk):
         lbl_title = ctk.CTkLabel(
             title_box, 
             text="HỆ THỐNG ĐIỀU KHIỂN TỰ ĐỘNG", 
-            font=ctk.CTkFont(family="Segoe UI", size=17, weight="normal")
+            font=ctk.CTkFont(family="Segoe UI", size=17, weight="normal"),
+            text_color="#FFFFFF"
         )
         lbl_title.pack(anchor="w")
 
@@ -561,7 +562,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             title_box, 
             text="TS Origin-Control • LDPlayer Manager", 
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
-            text_color="gray60"
+            text_color="#FFFFFF"
         )
         lbl_subtitle.pack(anchor="w")
 
@@ -570,7 +571,9 @@ class ToolLDPlayerGUI(ctk.CTk):
             self.header_frame, 
             text="Tối", 
             command=self._toggle_theme,
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal")
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            text_color="#FFFFFF",
+            progress_color="#0284C7"
         )
         self.switch_theme.select()
         self.switch_theme.grid(row=0, column=1, sticky="e")
@@ -587,7 +590,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             self.card_ld,
             text="TAB LDPLAYER & SERVER & KHỞI ĐỘNG",
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="normal"),
-            text_color="#3B82F6"
+            text_color="#2563EB"
         )
         lbl_card_title.grid(row=0, column=0, padx=10, pady=(6, 2), sticky="w")
 
@@ -603,6 +606,8 @@ class ToolLDPlayerGUI(ctk.CTk):
             values=["Đang quét tab..."],
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="normal"),
             dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            text_color="#FFFFFF",
+            dropdown_text_color="#FFFFFF",
             height=34,
             command=self._on_ld_tab_selected
         )
@@ -614,6 +619,8 @@ class ToolLDPlayerGUI(ctk.CTk):
             values=self._get_server_options(),
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="normal"),
             dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            text_color="#FFFFFF",
+            dropdown_text_color="#FFFFFF",
             height=34,
             fg_color="#374151",
             button_color="#4B5563",
@@ -628,6 +635,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             select_row,
             text="TS Origin",
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="normal"),
+            text_color="#FFFFFF",
             height=34,
             fg_color="#059669",
             hover_color="#047857",
@@ -654,22 +662,22 @@ class ToolLDPlayerGUI(ctk.CTk):
 
         f_hdr = ctk.CTkFont(family="Segoe UI", size=13, weight="normal")
 
-        # 1. KHỞI ĐỘNG (Màu xanh dương #3B82F6 như card TAB LDPLAYER)
-        ctk.CTkLabel(title_box, text="KHỞI ĐỘNG ", font=f_hdr, text_color="#3B82F6").pack(side="left")
-        # 2. ( (Màu xanh dương #3B82F6)
-        ctk.CTkLabel(title_box, text="(", font=f_hdr, text_color="#3B82F6").pack(side="left")
-        # 3. PHỤ BẢN ĐƠN / ĐỘI (Màu tím #C084FC như card Phụ Bản)
-        ctk.CTkLabel(title_box, text=" PHỤ BẢN ĐƠN / ĐỘI ", font=f_hdr, text_color="#C084FC").pack(side="left")
-        # 4. & (Màu xanh dương #3B82F6)
-        ctk.CTkLabel(title_box, text="&", font=f_hdr, text_color="#3B82F6").pack(side="left")
-        # 5. BOSS TG (Màu vàng #FBBF24 như card Boss TG)
-        ctk.CTkLabel(title_box, text=" BOSS TG ", font=f_hdr, text_color="#FBBF24").pack(side="left")
-        # 6. & (Màu xanh dương #3B82F6)
-        ctk.CTkLabel(title_box, text="&", font=f_hdr, text_color="#3B82F6").pack(side="left")
-        # 7. DỊ GIỚI (Màu xanh lá #34D399 như card Dị Giới)
-        ctk.CTkLabel(title_box, text=" DỊ GIỚI ", font=f_hdr, text_color="#34D399").pack(side="left")
-        # 8. ) (Màu xanh dương #3B82F6)
-        ctk.CTkLabel(title_box, text=")", font=f_hdr, text_color="#3B82F6").pack(side="left")
+        # 1. KHỞI ĐỘNG
+        ctk.CTkLabel(title_box, text="KHỞI ĐỘNG ", font=f_hdr, text_color="#2563EB").pack(side="left")
+        # 2. (
+        ctk.CTkLabel(title_box, text="(", font=f_hdr, text_color="#2563EB").pack(side="left")
+        # 3. PHỤ BẢN ĐƠN / ĐỘI
+        ctk.CTkLabel(title_box, text=" PHỤ BẢN ĐƠN / ĐỘI ", font=f_hdr, text_color="#2563EB").pack(side="left")
+        # 4. &
+        ctk.CTkLabel(title_box, text="&", font=f_hdr, text_color="#2563EB").pack(side="left")
+        # 5. BOSS TG
+        ctk.CTkLabel(title_box, text=" BOSS TG ", font=f_hdr, text_color="#2563EB").pack(side="left")
+        # 6. &
+        ctk.CTkLabel(title_box, text="&", font=f_hdr, text_color="#2563EB").pack(side="left")
+        # 7. DỊ GIỚI
+        ctk.CTkLabel(title_box, text=" DỊ GIỚI ", font=f_hdr, text_color="#2563EB").pack(side="left")
+        # 8. )
+        ctk.CTkLabel(title_box, text=")", font=f_hdr, text_color="#2563EB").pack(side="left")
 
         # Nút "Chạy" (Column 0)
         self.btn_run = ctk.CTkButton(
@@ -677,8 +685,9 @@ class ToolLDPlayerGUI(ctk.CTk):
             text="Chạy",
             height=34,
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="normal"),
-            fg_color="#2563EB",
-            hover_color="#1D4ED8",
+            text_color="#FFFFFF",
+            fg_color="#059669",
+            hover_color="#047857",
             command=self.xu_ly_nut_chay
         )
         self.btn_run.grid(row=1, column=0, padx=(10, 4), pady=(0, 8), sticky="ew")
@@ -689,6 +698,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             text="Dừng", 
             height=34,
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="normal"),
+            text_color="#FFFFFF",
             fg_color="#DC2626",
             hover_color="#B91C1C",
             command=self.dung_tat_ca_hoat_dong
@@ -717,7 +727,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             hdr_log,
             text="NHẬT KÝ HOẠT ĐỘNG (LOG)",
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
-            text_color="#38BDF8"
+            text_color="#2563EB"
         )
         lbl_log_title.grid(row=0, column=0, sticky="w")
 
@@ -727,6 +737,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             width=65,
             height=22,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
+            text_color="#FFFFFF",
             fg_color="#374151",
             hover_color="#4B5563",
             command=self._clear_log
@@ -738,7 +749,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             self.card_log,
             font=ctk.CTkFont(family="Consolas", size=11, weight="normal"),
             fg_color=("gray90", "#111827"),
-            text_color=("gray10", "#F3F4F6"),
+            text_color="#FFFFFF",
             wrap="word",
             corner_radius=6
         )
@@ -762,7 +773,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             self.status_bar,
             text="Sẵn sàng",
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
-            text_color="gray60"
+            text_color="#FFFFFF"
         )
         self.lbl_status.grid(row=0, column=0, padx=12, sticky="w")
 
@@ -770,7 +781,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             self.status_bar,
             text="Tab LD: 0",
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
-            text_color="#3B82F6"
+            text_color="#FFFFFF"
         )
         self.lbl_tab_count.grid(row=0, column=1, padx=12, sticky="e")
 
@@ -986,19 +997,19 @@ class ToolLDPlayerGUI(ctk.CTk):
         hdr_E.grid_columnconfigure(1, weight=0)
         hdr_E.grid_columnconfigure(2, weight=0)
 
-        lbl_E = ctk.CTkLabel(hdr_E, text="PHỤ BẢN ĐƠN / ĐỘI", font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), text_color="#C084FC")
+        lbl_E = ctk.CTkLabel(hdr_E, text="PHỤ BẢN ĐƠN / ĐỘI", font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), text_color="#2563EB")
         lbl_E.grid(row=0, column=0, sticky="w")
 
         self.chk_pause_E = ctk.CTkCheckBox(
             hdr_E, text="Tạm Dừng", variable=self.var_pause_E, command=self._on_pause_E_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
-            fg_color="#EF4444", hover_color="#DC2626", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=8
+            fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=8
         )
         self.chk_pause_E.grid(row=0, column=1, sticky="e", padx=(0, 6))
 
         self.switch_E = ctk.CTkSwitch(
             hdr_E, text="", variable=self.var_switch_E, command=self._on_switch_E_toggled,
-            width=36, height=18, switch_width=36, switch_height=18, fg_color="#374151", progress_color="#0284C7"
+            width=36, height=18, switch_width=36, switch_height=18, fg_color="#374151", progress_color="#0284C7", text_color="#FFFFFF"
         )
         self.switch_E.grid(row=0, column=2, sticky="e")
 
@@ -1014,7 +1025,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         lbl_pb_don = ctk.CTkLabel(
             grid_modes, text="Phụ Bản Đơn",
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
-            text_color="#38BDF8"
+            text_color="#FFFFFF"
         )
         lbl_pb_don.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 1))
 
@@ -1025,7 +1036,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.chk_E_don = ctk.CTkCheckBox(
             box_don_check, text="Cá Nhân", variable=self.var_E_don, command=self._on_checkbox_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
-            fg_color="#0284C7", hover_color="#0369A1", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
+            fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
         )
         self.chk_E_don.pack(side="left", padx=(0, 1))
 
@@ -1034,6 +1045,8 @@ class ToolLDPlayerGUI(ctk.CTk):
             values=char_options,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
             dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            text_color="#FFFFFF",
+            dropdown_text_color="#FFFFFF",
             height=24,
             width=115,
             fg_color="#374151",
@@ -1048,7 +1061,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         lbl_pb_doi = ctk.CTkLabel(
             grid_modes, text="Phụ Bản Đội",
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
-            text_color="#38BDF8"
+            text_color="#FFFFFF"
         )
         lbl_pb_doi.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(2, 1))
 
@@ -1059,7 +1072,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.chk_E_canhan = ctk.CTkCheckBox(
             box_checks_team, text="Cá Nhân", variable=self.var_E_canhan, command=self._on_E_canhan_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
-            fg_color="#0284C7", hover_color="#0369A1", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
+            fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
         )
         self.chk_E_canhan.pack(side="left", padx=(0, 0))
 
@@ -1069,7 +1082,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.chk_E_doi = ctk.CTkCheckBox(
             box_checks_team, text="Tổ Đội", variable=self.var_E_doi, command=self._on_E_doi_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
-            fg_color="#0284C7", hover_color="#0369A1", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
+            fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
         )
         self.chk_E_doi.pack(side="left", padx=(0, 0))
 
@@ -1078,6 +1091,8 @@ class ToolLDPlayerGUI(ctk.CTk):
             values=char_options,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
             dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            text_color="#FFFFFF",
+            dropdown_text_color="#FFFFFF",
             height=24,
             width=115,
             fg_color="#374151",
@@ -1098,10 +1113,10 @@ class ToolLDPlayerGUI(ctk.CTk):
         row_pb1.grid_columnconfigure(0, weight=0, minsize=65)
         row_pb1.grid_columnconfigure(1, weight=1)
 
-        self.chk_E1 = ctk.CTkCheckBox(row_pb1, text="PB 20", variable=self.var_E1, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
+        self.chk_E1 = ctk.CTkCheckBox(row_pb1, text="PB 20", variable=self.var_E1, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
         self.chk_E1.grid(row=0, column=0, sticky="w")
 
-        self.chk_E3 = ctk.CTkCheckBox(row_pb1, text="PB 80", variable=self.var_E3, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
+        self.chk_E3 = ctk.CTkCheckBox(row_pb1, text="PB 80", variable=self.var_E3, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
         self.chk_E3.grid(row=0, column=1, sticky="w")
 
         row_pb2 = ctk.CTkFrame(self.card_E, fg_color="transparent")
@@ -1109,10 +1124,10 @@ class ToolLDPlayerGUI(ctk.CTk):
         row_pb2.grid_columnconfigure(0, weight=0, minsize=65)
         row_pb2.grid_columnconfigure(1, weight=1)
 
-        self.chk_E2 = ctk.CTkCheckBox(row_pb2, text="PB 50", variable=self.var_E2, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
+        self.chk_E2 = ctk.CTkCheckBox(row_pb2, text="PB 50", variable=self.var_E2, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
         self.chk_E2.grid(row=0, column=0, sticky="w")
 
-        self.chk_E4 = ctk.CTkCheckBox(row_pb2, text="PB 110", variable=self.var_E4, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
+        self.chk_E4 = ctk.CTkCheckBox(row_pb2, text="PB 110", variable=self.var_E4, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
         self.chk_E4.grid(row=0, column=1, sticky="w")
 
         # ------------------- CARD 2: BOSS THẾ GIỚI (Cột 1, Row 0) -------------------
@@ -1129,19 +1144,19 @@ class ToolLDPlayerGUI(ctk.CTk):
         hdr_C.grid_columnconfigure(1, weight=0)
         hdr_C.grid_columnconfigure(2, weight=0)
 
-        lbl_C = ctk.CTkLabel(hdr_C, text="BOSS TG", font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), text_color="#FBBF24")
+        lbl_C = ctk.CTkLabel(hdr_C, text="BOSS TG", font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), text_color="#2563EB")
         lbl_C.grid(row=0, column=0, sticky="w")
 
         self.chk_pause_C = ctk.CTkCheckBox(
             hdr_C, text="Tạm Dừng", variable=self.var_pause_C, command=self._on_pause_C_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
-            fg_color="#EF4444", hover_color="#DC2626", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=8
+            fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=8
         )
         self.chk_pause_C.grid(row=0, column=1, sticky="e", padx=(0, 6))
 
         self.switch_C = ctk.CTkSwitch(
             hdr_C, text="", variable=self.var_switch_C, command=self._on_switch_C_toggled,
-            width=36, height=18, switch_width=36, switch_height=18, fg_color="#374151", progress_color="#D97706"
+            width=36, height=18, switch_width=36, switch_height=18, fg_color="#374151", progress_color="#0284C7", text_color="#FFFFFF"
         )
         self.switch_C.grid(row=0, column=2, sticky="e")
 
@@ -1156,7 +1171,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.chk_C1 = ctk.CTkCheckBox(
             grid_C_body, text="Boss", variable=self.var_C1, command=self._on_checkbox_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
-            fg_color="#D97706", hover_color="#B45309", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
+            fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
         )
         self.chk_C1.grid(row=0, column=0, sticky="w", pady=2)
 
@@ -1165,6 +1180,8 @@ class ToolLDPlayerGUI(ctk.CTk):
             values=char_options,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
             dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            text_color="#FFFFFF",
+            dropdown_text_color="#FFFFFF",
             height=24,
             width=82,
             fg_color="#374151",
@@ -1179,7 +1196,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.chk_C3 = ctk.CTkCheckBox(
             grid_C_body, text="Vé", variable=self.var_C3, command=self._on_checkbox_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
-            fg_color="#D97706", hover_color="#B45309", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
+            fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
         )
         self.chk_C3.grid(row=1, column=0, sticky="w", pady=2)
 
@@ -1188,6 +1205,8 @@ class ToolLDPlayerGUI(ctk.CTk):
             values=["1", "2", "3", "4", "5"],
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
             dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            text_color="#FFFFFF",
+            dropdown_text_color="#FFFFFF",
             height=24,
             width=50,
             fg_color="#374151",
@@ -1233,19 +1252,19 @@ class ToolLDPlayerGUI(ctk.CTk):
         hdr_B.grid_columnconfigure(1, weight=0)
         hdr_B.grid_columnconfigure(2, weight=0)
 
-        lbl_B = ctk.CTkLabel(hdr_B, text="DỊ GIỚI", font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), text_color="#34D399")
+        lbl_B = ctk.CTkLabel(hdr_B, text="DỊ GIỚI", font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), text_color="#2563EB")
         lbl_B.grid(row=0, column=0, sticky="w")
 
         self.chk_pause_B = ctk.CTkCheckBox(
             hdr_B, text="Tạm Dừng", variable=self.var_pause_B, command=self._on_pause_B_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
-            fg_color="#EF4444", hover_color="#DC2626", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=8
+            fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=8
         )
         self.chk_pause_B.grid(row=0, column=1, sticky="e", padx=(0, 6))
 
         self.switch_B = ctk.CTkSwitch(
             hdr_B, text="", variable=self.var_switch_B, command=self._on_switch_B_toggled,
-            width=36, height=18, switch_width=36, switch_height=18, fg_color="#374151", progress_color="#059669"
+            width=36, height=18, switch_width=36, switch_height=18, fg_color="#374151", progress_color="#0284C7", text_color="#FFFFFF"
         )
         self.switch_B.grid(row=0, column=2, sticky="e")
 
@@ -1253,37 +1272,37 @@ class ToolLDPlayerGUI(ctk.CTk):
         row_B1 = ctk.CTkFrame(self.card_B, fg_color="transparent")
         row_B1.grid(row=1, column=0, padx=6, pady=2, sticky="ew")
 
-        self.chk_B1 = ctk.CTkCheckBox(row_B1, text="Phúc Thần", variable=self.var_B1, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"), fg_color="#059669", hover_color="#047857", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
+        self.chk_B1 = ctk.CTkCheckBox(row_B1, text="Phúc Thần", variable=self.var_B1, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
         self.chk_B1.pack(side="left")
 
-        lbl_B1_tag = ctk.CTkLabel(row_B1, text="( OFF / ON )", font=ctk.CTkFont(family="Segoe UI", size=8, weight="normal"), text_color="gray60")
+        lbl_B1_tag = ctk.CTkLabel(row_B1, text="( OFF / ON )", font=ctk.CTkFont(family="Segoe UI", size=8, weight="normal"), text_color="#FFFFFF")
         lbl_B1_tag.pack(side="right", padx=(0, 10))
 
         # Row 2: Ký Lục + ( OFF / ON )
         row_B2 = ctk.CTkFrame(self.card_B, fg_color="transparent")
         row_B2.grid(row=2, column=0, padx=6, pady=2, sticky="ew")
 
-        self.chk_B2 = ctk.CTkCheckBox(row_B2, text="Ký Lục", variable=self.var_B2, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"), fg_color="#059669", hover_color="#047857", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
+        self.chk_B2 = ctk.CTkCheckBox(row_B2, text="Ký Lục", variable=self.var_B2, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
         self.chk_B2.pack(side="left")
 
-        lbl_B2_tag = ctk.CTkLabel(row_B2, text="( OFF / ON )", font=ctk.CTkFont(family="Segoe UI", size=8, weight="normal"), text_color="gray60")
+        lbl_B2_tag = ctk.CTkLabel(row_B2, text="( OFF / ON )", font=ctk.CTkFont(family="Segoe UI", size=8, weight="normal"), text_color="#FFFFFF")
         lbl_B2_tag.pack(side="right", padx=(0, 10))
 
         # Row 3: Rút Gọn + ( OFF / ON )
         row_B3 = ctk.CTkFrame(self.card_B, fg_color="transparent")
         row_B3.grid(row=3, column=0, padx=6, pady=2, sticky="ew")
 
-        self.chk_B3 = ctk.CTkCheckBox(row_B3, text="Rút Gọn", variable=self.var_B3, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"), fg_color="#059669", hover_color="#047857", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
+        self.chk_B3 = ctk.CTkCheckBox(row_B3, text="Rút Gọn", variable=self.var_B3, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
         self.chk_B3.pack(side="left")
 
-        lbl_B3_tag = ctk.CTkLabel(row_B3, text="( OFF / ON )", font=ctk.CTkFont(family="Segoe UI", size=8, weight="normal"), text_color="gray60")
+        lbl_B3_tag = ctk.CTkLabel(row_B3, text="( OFF / ON )", font=ctk.CTkFont(family="Segoe UI", size=8, weight="normal"), text_color="#FFFFFF")
         lbl_B3_tag.pack(side="right", padx=(0, 10))
 
         # Row 4: Dị Giới Đêm
         row_B4 = ctk.CTkFrame(self.card_B, fg_color="transparent")
         row_B4.grid(row=4, column=0, padx=6, pady=(2, 6), sticky="ew")
 
-        self.chk_B4 = ctk.CTkCheckBox(row_B4, text="Dị Giới Đêm", variable=self.var_B4, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"), fg_color="#059669", hover_color="#047857", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
+        self.chk_B4 = ctk.CTkCheckBox(row_B4, text="Dị Giới Đêm", variable=self.var_B4, command=self._on_checkbox_toggled, font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"), fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5)
         self.chk_B4.pack(side="left")
 
         # ------------------- CARD 4: TỔ ĐỘI (Cột 0, Row 1) -------------------
@@ -1298,12 +1317,12 @@ class ToolLDPlayerGUI(ctk.CTk):
         hdr_G.grid_columnconfigure(0, weight=1)
         hdr_G.grid_columnconfigure(1, weight=0)
 
-        self.lbl_G = ctk.CTkLabel(hdr_G, text="TỔ ĐỘI", font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), text_color="#FB923C")
+        self.lbl_G = ctk.CTkLabel(hdr_G, text="TỔ ĐỘI", font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), text_color="#2563EB")
         self.lbl_G.grid(row=0, column=0, sticky="w")
 
         self.switch_G = ctk.CTkSwitch(
             hdr_G, text="", variable=self.var_switch_G, command=self._on_switch_G_toggled,
-            width=36, height=18, switch_width=36, switch_height=18, fg_color="#374151", progress_color="#EA580C"
+            width=36, height=18, switch_width=36, switch_height=18, fg_color="#374151", progress_color="#0284C7", text_color="#FFFFFF"
         )
         self.switch_G.grid(row=0, column=1, sticky="e")
 
@@ -1337,6 +1356,7 @@ class ToolLDPlayerGUI(ctk.CTk):
             width=32,
             height=24,
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            text_color="#FFFFFF",
             fg_color="#EA580C",
             hover_color="#C2410C",
             command=self._add_A_to_B_G
@@ -1367,7 +1387,7 @@ class ToolLDPlayerGUI(ctk.CTk):
                 self.scroll_G_list_A,
                 text="(Chưa có ảnh)",
                 font=ctk.CTkFont(family="Segoe UI", size=10, weight="normal"),
-                text_color="gray50"
+                text_color="#FFFFFF"
             )
             lbl_empty.pack(pady=6)
         else:
@@ -1379,7 +1399,7 @@ class ToolLDPlayerGUI(ctk.CTk):
                     font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
                     anchor="w",
                     fg_color="#EA580C" if char_name == self.selected_G_list_A_char else "#374151",
-                    text_color="#FFFFFF" if char_name == self.selected_G_list_A_char else "#D1D5DB",
+                    text_color="#FFFFFF",
                     hover_color="#C2410C" if char_name == self.selected_G_list_A_char else "#4B5563",
                     command=lambda n=char_name: self._select_G_list_A_item(n)
                 )
@@ -1401,20 +1421,20 @@ class ToolLDPlayerGUI(ctk.CTk):
         hdr_D.grid_columnconfigure(1, weight=0)
         hdr_D.grid_columnconfigure(2, weight=0)
 
-        lbl_D = ctk.CTkLabel(hdr_D, text="40 NPC", font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), text_color="#F87171")
+        lbl_D = ctk.CTkLabel(hdr_D, text="40 NPC", font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), text_color="#2563EB")
         lbl_D.grid(row=0, column=0, sticky="w")
 
         # Nút/ô tích Dừng hoạt động kế bên công tắc (tích vào thì dừng, nhả ra chạy tiếp)
         self.chk_pause_D = ctk.CTkCheckBox(
             hdr_D, text="Tạm Dừng", variable=self.var_pause_D, command=self._on_pause_D_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
-            fg_color="#EF4444", hover_color="#DC2626", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=8
+            fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=8
         )
         self.chk_pause_D.grid(row=0, column=1, sticky="e", padx=(0, 6))
 
         self.switch_D = ctk.CTkSwitch(
             hdr_D, text="", variable=self.var_switch_D, command=self._on_switch_D_toggled,
-            width=36, height=18, switch_width=36, switch_height=18, fg_color="#374151", progress_color="#DC2626"
+            width=36, height=18, switch_width=36, switch_height=18, fg_color="#374151", progress_color="#0284C7", text_color="#FFFFFF"
         )
         self.switch_D.grid(row=0, column=2, sticky="e")
 
@@ -1428,7 +1448,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.chk_D1 = ctk.CTkCheckBox(
             grid_D_body, text="Di Chuyển", variable=self.var_D1, command=self._on_checkbox_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
-            fg_color="#DC2626", hover_color="#B91C1C", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
+            fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
         )
         self.chk_D1.grid(row=0, column=0, sticky="w", pady=4)
 
@@ -1441,6 +1461,8 @@ class ToolLDPlayerGUI(ctk.CTk):
             values=khu_options,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
             dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            text_color="#FFFFFF",
+            dropdown_text_color="#FFFFFF",
             height=24,
             width=68,
             fg_color="#374151",
@@ -1453,7 +1475,7 @@ class ToolLDPlayerGUI(ctk.CTk):
 
         self.chk_D_chuyen_khu = ctk.CTkCheckBox(
             box_D_khu, text="", variable=self.var_D_chuyen_khu, command=self._on_chk_D_chuyen_khu_toggled,
-            fg_color="#DC2626", hover_color="#B91C1C", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=8
+            fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=8
         )
         self.chk_D_chuyen_khu.pack(side="left", padx=(2, 0))
 
@@ -1461,7 +1483,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.chk_D2 = ctk.CTkCheckBox(
             grid_D_body, text="Tổ Đội", variable=self.var_D2, command=self._on_checkbox_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
-            fg_color="#DC2626", hover_color="#B91C1C", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
+            fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
         )
         self.chk_D2.grid(row=1, column=0, sticky="w", pady=4)
 
@@ -1470,6 +1492,8 @@ class ToolLDPlayerGUI(ctk.CTk):
             values=char_options,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
             dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            text_color="#FFFFFF",
+            dropdown_text_color="#FFFFFF",
             height=24,
             width=82,
             fg_color="#374151",
@@ -1484,7 +1508,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.chk_D3 = ctk.CTkCheckBox(
             grid_D_body, text="Tầng", variable=self.var_D3, command=self._on_checkbox_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
-            fg_color="#DC2626", hover_color="#B91C1C", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
+            fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
         )
         self.chk_D3.grid(row=2, column=0, sticky="w", pady=4)
 
@@ -1493,6 +1517,8 @@ class ToolLDPlayerGUI(ctk.CTk):
             values=["38", "39", "40"],
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
             dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            text_color="#FFFFFF",
+            dropdown_text_color="#FFFFFF",
             height=24,
             width=65,
             fg_color="#374151",
@@ -1516,20 +1542,20 @@ class ToolLDPlayerGUI(ctk.CTk):
         hdr_F.grid_columnconfigure(1, weight=0)
         hdr_F.grid_columnconfigure(2, weight=0)
 
-        lbl_F = ctk.CTkLabel(hdr_F, text="2K", font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), text_color="#22D3EE")
+        lbl_F = ctk.CTkLabel(hdr_F, text="2K", font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"), text_color="#2563EB")
         lbl_F.grid(row=0, column=0, sticky="w")
 
         # Nút/ô tích Dừng hoạt động kế bên công tắc
         self.chk_pause_F = ctk.CTkCheckBox(
             hdr_F, text="Tạm Dừng", variable=self.var_pause_F, command=self._on_pause_F_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
-            fg_color="#EF4444", hover_color="#DC2626", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=8
+            fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=8
         )
         self.chk_pause_F.grid(row=0, column=1, sticky="e", padx=(0, 6))
 
         self.switch_F = ctk.CTkSwitch(
             hdr_F, text="", variable=self.var_switch_F, command=self._on_switch_F_toggled,
-            width=36, height=18, switch_width=36, switch_height=18, fg_color="#374151", progress_color="#0891B2"
+            width=36, height=18, switch_width=36, switch_height=18, fg_color="#374151", progress_color="#0284C7", text_color="#FFFFFF"
         )
         self.switch_F.grid(row=0, column=2, sticky="e")
 
@@ -1543,7 +1569,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.chk_F1 = ctk.CTkCheckBox(
             grid_F_body, text="Di Chuyển", variable=self.var_F1, command=self._on_checkbox_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
-            fg_color="#0891B2", hover_color="#0E7490", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
+            fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
         )
         self.chk_F1.grid(row=0, column=0, columnspan=2, sticky="w", pady=4)
 
@@ -1551,7 +1577,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.chk_F2 = ctk.CTkCheckBox(
             grid_F_body, text="Tổ Đội", variable=self.var_F2, command=self._on_checkbox_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
-            fg_color="#0891B2", hover_color="#0E7490", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
+            fg_color="#0284C7", hover_color="#0369A1", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
         )
         self.chk_F2.grid(row=1, column=0, sticky="w", pady=4)
 
@@ -1560,6 +1586,8 @@ class ToolLDPlayerGUI(ctk.CTk):
             values=char_options,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
             dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            text_color="#FFFFFF",
+            dropdown_text_color="#FFFFFF",
             height=24,
             width=100,
             fg_color="#374151",
@@ -1574,7 +1602,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.chk_F3 = ctk.CTkCheckBox(
             grid_F_body, text="Tầng", variable=self.var_F3, command=self._on_checkbox_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
-            fg_color="#0891B2", hover_color="#0E7490", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
+            fg_color="#0891B2", hover_color="#0E7490", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
         )
         self.chk_F3.grid(row=2, column=0, sticky="w", pady=4)
 
@@ -1584,6 +1612,8 @@ class ToolLDPlayerGUI(ctk.CTk):
             values=tang_options,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
             dropdown_font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            text_color="#FFFFFF",
+            dropdown_text_color="#FFFFFF",
             height=24,
             width=95,
             fg_color="#374151",
@@ -2047,7 +2077,6 @@ class ToolLDPlayerGUI(ctk.CTk):
                     # Vuốt cuộn NGƯỢC LÊN từ từ (700ms)
                     self.after(0, self.log_info, f"📜 [Cuộn ngược lên {step + 1}/10] Đang cuộn ngược lên tìm '{server_name}'...")
                     self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input swipe {scroll_x} {y_start_up} {scroll_x} {y_end_up} {swipe_ms}"])
-                    time.sleep(1.5)
                     time.sleep(1.5)
 
             # Giai đoạn 3: Nếu cuộn hết 20 lần mà vẫn không kết nối thành công -> DỪNG LẠI
