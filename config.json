@@ -11,7 +11,7 @@
     "D_team_char": "Xuất Chiến",
     "D_tang": "Auto",
     "pause_D": false,
-    "F_team_char": "Xuất Chiến",
+    "F_team_char": "Vị Trí 1",
     "F_tang": "Trệt - 10",
     "F_chuyen_khu": false,
     "switch_B": false,
@@ -27,8 +27,8 @@
     "C3": true,
     "C4": false,
     "switch_D": false,
-    "D1": false,
-    "D2": false,
+    "D1": true,
+    "D2": true,
     "D3": true,
     "D4": false,
     "switch_E": false,
@@ -48,6 +48,6 @@
     "G_list_B": [
         "MỹTiểu"
     ],
-    "G_selected_left": "MỹTiểu",
+    "G_selected_left": "IN3DRESIN",
     "selected_tab": "TS Origin"
 }
