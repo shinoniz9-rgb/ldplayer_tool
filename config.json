@@ -7,7 +7,7 @@
     "E_team_char": "Vị Trí 1",
     "C_char": "Vị Trí 2",
     "C_ve": "2",
-    "D_khu": "Khu 1",
+    "D_khu": "Khu 4",
     "D_team_char": "Xuất Chiến",
     "D_tang": "38",
     "pause_D": false,
@@ -16,10 +16,10 @@
     "F_chuyen_khu": false,
     "switch_B": false,
     "pause_B": false,
-    "B1": false,
-    "B2": false,
-    "B3": false,
-    "B4": false,
+    "B1": true,
+    "B2": true,
+    "B3": true,
+    "B4": true,
     "switch_C": false,
     "pause_C": false,
     "C1": false,
@@ -29,7 +29,7 @@
     "switch_D": false,
     "D1": false,
     "D2": false,
-    "D3": false,
+    "D3": true,
     "D4": false,
     "switch_E": false,
     "pause_E": false,
@@ -48,9 +48,8 @@
         "ChaBong",
         "Hiyori",
         "IN3DRESIN",
-        "Nah",
         "Sanji"
     ],
     "G_selected_left": "Sanji",
-    "selected_tab": "TS Test"
+    "selected_tab": "TS Origin"
 }
