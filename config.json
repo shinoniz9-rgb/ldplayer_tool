@@ -5,10 +5,11 @@
     "E_doi": false,
     "E_don_char": "Vị Trí 2",
     "E_team_char": "Vị Trí 1",
-    "C_char": "Vị Trí 2",
+    "C_char": "Vị Trí 1",
     "C_ve": "2",
     "D_khu": "Cố Định",
     "D_team_char": "Xuất Chiến",
+    "D_chien_dau": "Auto",
     "pause_D": false,
     "F_team_char": "Xuất Chiến",
     "F_tang": "Trệt",
@@ -39,9 +40,9 @@
     "E5": false,
     "switch_F": false,
     "pause_F": false,
-    "F1": false,
-    "F2": false,
-    "F3": false,
+    "F1": true,
+    "F2": true,
+    "F3": true,
     "F4": false,
     "switch_G": false,
     "G_list_B": [
@@ -51,5 +52,5 @@
         "Sanji"
     ],
     "G_selected_left": "Sanji",
-    "selected_tab": "TS Origin"
+    "selected_tab": "TS Test"
 }
