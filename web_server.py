@@ -559,6 +559,7 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         .btn-run {
+            flex: 2;
             background: linear-gradient(135deg, #059669, #10b981);
             color: white;
             box-shadow: 0 3px 12px rgba(16, 185, 129, 0.35);
@@ -687,7 +688,7 @@ HTML_PAGE = """<!DOCTYPE html>
                 </div>
                 <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
                     <label style="font-size:0.78rem; font-weight:600; color:var(--text-muted);">
-                        <input type="checkbox" id="autoStream" onchange="toggleAutoStream(this.checked)" checked style="accent-color:var(--accent); margin-right:4px;"> Tự làm mới (4s)
+                        <input type="checkbox" id="autoStream" onchange="toggleAutoStream(this.checked)" checked style="accent-color:var(--accent); margin-right:4px;"> Tự làm mới (2s)
                     </label>
                     <span style="font-size:0.75rem; color:#64748b;" id="lblStreamStatus">Đang tự động truyền ảnh</span>
                 </div>
@@ -908,9 +909,7 @@ HTML_PAGE = """<!DOCTYPE html>
                         <select id="combo_buff" style="width:130px; font-size:0.8rem; padding:4px 6px;" onchange="onComboChanged('buff', this.value)">
                             <option value="Buff HP">Buff HP</option>
                             <option value="Buff SP">Buff SP</option>
-                            <option value="Buff HP / SP">Buff HP / SP</option>
-                            <option value="Buff 2HP / SP">Buff 2HP / SP</option>
-                            <option value="Buff 3HP / SP">Buff 3HP / SP</option>
+                            <option value="Buff 3HP / 1SP">Buff 3HP / 1SP</option>
                         </select>
                     </div>
                 </div>
@@ -1321,8 +1320,8 @@ HTML_PAGE = """<!DOCTYPE html>
             if (streamTimer) clearInterval(streamTimer);
             const lbl = document.getElementById('lblStreamStatus');
             if (enable) {
-                streamTimer = setInterval(refreshScreenshot, 4000);
-                if (lbl) lbl.innerText = 'Đang tự động truyền ảnh (4s)';
+                streamTimer = setInterval(refreshScreenshot, 2000);
+                if (lbl) lbl.innerText = 'Đang tự động truyền ảnh (2s)';
             } else {
                 if (lbl) lbl.innerText = 'Đã tạm dừng tự động truyền ảnh';
             }
@@ -1835,6 +1834,11 @@ def start_cloudflare_tunnel(app):
                         ngrok_domain = cf_domain
         except Exception:
             pass
+
+        if not ngrok_token:
+            ngrok_token = "3IR0jDxxFPLsNAP9UbnCxFpPXVJ_Mgs51iujUEfsCqJg4JTH"
+        if not ngrok_domain:
+            ngrok_domain = "https://crusader-visor-disparity.ngrok-free.dev"
 
         # 0. ƯU TIÊN NGROK STATIC DOMAIN NẾU CÓ NGROK TOKEN & DOMAIN
         if ngrok_token and (ngrok_domain or cf_domain):

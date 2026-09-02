@@ -41,10 +41,10 @@
         "TS Origin": {
             "server": "Điêu Thuyền",
             "B_don": true,
-            "B_doi": true,
+            "B_doi": false,
             "B_don_char": "Xuất Chiến",
-            "B_team_char": "Xuất Chiến",
-            "A_char": "Vị Trí 2",
+            "B_team_char": "Vị Trí 1",
+            "A_char": "Xuất Chiến",
             "D_team_char": "Xuất Chiến",
             "D_chien_dau": "Auto",
             "D_tang": "Trệt - 10",
@@ -63,18 +63,15 @@
             "C2": false,
             "C3": false,
             "switch_D": false,
-            "D2": true,
+            "D2": false,
             "D3": true,
             "D4": false,
-            "E_list_B": [
-                "ChaBong",
-                "IN3DRESIN"
-            ],
+            "E_list_B": [],
             "E_selected_left": "Hiyori",
             "E_quan_su": true,
-            "E_quan_su_char": "ChaBong",
+            "E_quan_su_char": "(Trống)",
             "var_buff": false,
-            "combo_buff": "Buff HP"
+            "combo_buff": "Buff 3HP / 1SP"
         },
         "TS Test": {
             "server": "Điêu Thuyền",
