@@ -8202,9 +8202,9 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             while not self._should_stop_card_D():
                 vt_x, vt_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_d/40npc/d_vaotran.png", threshold=0.75, region=(275, 540, 980, 670))
                 if vt_x is not None and vt_y is not None:
-                    self.after(0, self.log_info, f"🎯 Phát hiện 'card_d/40npc/d_vaotran.png' tại ({vt_x}, {vt_y})! Tap click ➔ Hoãn 4.0s vào trận...")
+                    self.after(0, self.log_info, f"🎯 Phát hiện 'card_d/40npc/d_vaotran.png' tại ({vt_x}, {vt_y})! Tap click ➔ Hoãn 7.0s vào trận...")
                     self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {vt_x} {vt_y}"])
-                    time.sleep(4.0)
+                    time.sleep(7.0)
                     self.send_telegram_alert(
                         "⚔️ [40 NPC]\n🎯 Bắt Đầu Trận !",
                         capture_screenshot=True,
