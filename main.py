@@ -150,6 +150,7 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.telegram_bot_token = "8801452830:AAEmGuymSBhpsRB5HWM7kIShBaFcG4hpkMo"
         self.telegram_bot_token_2 = "8973239690:AAEgsy-M5vnXmNcU24hxt6e2lJzLFix53L0"
         self.telegram_chat_id = "6647756940"
+        self.telegram_chat_id_2 = "-1004344257210"
         self.current_active_tab = None
 
         # --- TẠO HỆ THỐNG GIAO DIỆN ---
@@ -781,6 +782,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
         token = getattr(self, 'telegram_bot_token', '') or "8801452830:AAEmGuymSBhpsRB5HWM7kIShBaFcG4hpkMo"
         token_2 = getattr(self, 'telegram_bot_token_2', '') or "8973239690:AAEgsy-M5vnXmNcU24hxt6e2lJzLFix53L0"
         chat_id = getattr(self, 'telegram_chat_id', '') or "6647756940"
+        chat_id_2 = getattr(self, 'telegram_chat_id_2', '') or "-1004344257210"
         enable_tg = getattr(self, 'var_enable_telegram', None)
         if enable_tg is not None and not enable_tg.get():
             return
@@ -798,23 +800,30 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                         token_2 = cfg_data["telegram_bot_token_2"]
                     if cfg_data.get("telegram_chat_id"):
                         chat_id = cfg_data["telegram_chat_id"]
+                    if cfg_data.get("telegram_chat_id_2"):
+                        chat_id_2 = cfg_data["telegram_chat_id_2"]
             except Exception:
                 pass
 
-        if not token or not chat_id:
-            return
+        # Xác định danh sách bot và chat_id nhận tin:
+        # Bot 1 gửi về chat_id (cá nhân), Bot 2 gửi về chat_id_2 (nhóm)
+        targets_to_send = []
+        if token and chat_id:
+            targets_to_send.append((token, str(chat_id)))
 
-        # Xác định danh sách bot nhận tin:
-        # Nếu là Card D (40 NPC hoặc 2K & Nhị Kiều) -> gửi cả Bot 1 VÀ Bot 2
-        tokens_to_send = [token]
         is_d = (
             is_card_d
             or "[CARD D" in message
             or "[40 NPC]" in message
             or "[2K & NHỊ KIỀU]" in message
         )
-        if is_d and token_2 and token_2 not in tokens_to_send:
-            tokens_to_send.append(token_2)
+        if is_d and token_2:
+            target_cid2 = str(chat_id_2) if chat_id_2 else str(chat_id)
+            if target_cid2:
+                targets_to_send.append((token_2, target_cid2))
+
+        if not targets_to_send:
+            return
 
         # Xác định tab index
         if tab_index is None:
@@ -842,7 +851,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                     except Exception:
                         img_bytes = None
 
-                for current_bot_token in tokens_to_send:
+                for current_bot_token, current_chat_id in targets_to_send:
                     sent_photo = False
                     # Gửi ảnh kèm chú thích nếu có ảnh
                     if img_bytes:
@@ -851,7 +860,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                             body = bytearray()
                             body.extend(f'--{boundary}\r\n'.encode())
                             body.extend(b'Content-Disposition: form-data; name="chat_id"\r\n\r\n')
-                            body.extend(f'{chat_id}\r\n'.encode())
+                            body.extend(f'{current_chat_id}\r\n'.encode())
 
                             body.extend(f'--{boundary}\r\n'.encode())
                             body.extend(b'Content-Disposition: form-data; name="caption"\r\n\r\n')
@@ -876,7 +885,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                     if not sent_photo:
                         try:
                             url = f'https://api.telegram.org/bot{current_bot_token}/sendMessage'
-                            payload = pyjson.dumps({'chat_id': chat_id, 'text': message}).encode('utf-8')
+                            payload = pyjson.dumps({'chat_id': current_chat_id, 'text': message}).encode('utf-8')
                             req = urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'})
                             with urllib.request.urlopen(req, timeout=10):
                                 pass
@@ -1168,6 +1177,8 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                 config["telegram_bot_token_2"] = self.telegram_bot_token_2
             if hasattr(self, 'telegram_chat_id') and self.telegram_chat_id:
                 config["telegram_chat_id"] = self.telegram_chat_id
+            if hasattr(self, 'telegram_chat_id_2') and self.telegram_chat_id_2:
+                config["telegram_chat_id_2"] = self.telegram_chat_id_2
             if hasattr(self, 'combo_ld_tabs'):
                 val_tab = self.combo_ld_tabs.get()
                 if val_tab and val_tab not in ["Đang quét tab...", "Lỗi quét dữ liệu", "Không tìm thấy tab LD nào"]:
@@ -1199,6 +1210,8 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                     self.telegram_bot_token_2 = str(config["telegram_bot_token_2"]).strip()
                 if "telegram_chat_id" in config:
                     self.telegram_chat_id = str(config["telegram_chat_id"]).strip()
+                if "telegram_chat_id_2" in config:
+                    self.telegram_chat_id_2 = str(config["telegram_chat_id_2"]).strip()
 
                 if "ld_path" in config:
                     saved_path = config["ld_path"]
@@ -8202,15 +8215,9 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             while not self._should_stop_card_D():
                 vt_x, vt_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_d/40npc/d_vaotran.png", threshold=0.75, region=(275, 540, 980, 670))
                 if vt_x is not None and vt_y is not None:
-                    self.after(0, self.log_info, f"🎯 Phát hiện 'card_d/40npc/d_vaotran.png' tại ({vt_x}, {vt_y})! Tap click ➔ Hoãn 7.0s vào trận...")
+                    self.after(0, self.log_info, f"🎯 Phát hiện 'card_d/40npc/d_vaotran.png' tại ({vt_x}, {vt_y})! Tap click ➔ Hoãn 0.4s...")
                     self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {vt_x} {vt_y}"])
-                    time.sleep(7.0)
-                    self.send_telegram_alert(
-                        "⚔️ [40 NPC]\n🎯 Bắt Đầu Trận !",
-                        capture_screenshot=True,
-                        tab_index=str(tab_index),
-                        is_card_d=True
-                    )
+                    time.sleep(0.4)
                     break
                 time.sleep(0.4)
 
@@ -8227,6 +8234,17 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                         time.sleep(0.4)
                     break
                 time.sleep(0.4)
+
+            # Hoãn 3.0s tải vào trận sau khi xóa thoại Tiếp Theo & Gửi cảnh báo Telegram
+            if self._should_stop_card_D(): return
+            self.after(0, self.log_info, "⏳ [Bước 5.9] Đã xóa thoại Tiếp Theo ➔ Hoãn 3.0s tải vào trận...")
+            time.sleep(3.0)
+            self.send_telegram_alert(
+                "⚔️ [40 NPC]\n🎯 Bắt Đầu Trận !",
+                capture_screenshot=True,
+                tab_index=str(tab_index),
+                is_card_d=True
+            )
 
             # BƯỚC 6 (Vòng lặp đánh Lôi Đài 38 lượt trận - Lượt 1 -> 38):
             if self._should_stop_card_D(): return

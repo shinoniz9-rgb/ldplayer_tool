@@ -120,7 +120,7 @@ if res.returncode == 0 and os.path.exists(dist_exe):
         import json
         with open(cfg_file, "r", encoding="utf-8") as f:
             clean_cfg = json.load(f)
-        for k in ["ngrok_authtoken", "fixed_domain", "ngrok_domain", "telegram_bot_token", "telegram_bot_token_2", "telegram_chat_id"]:
+        for k in ["ngrok_authtoken", "fixed_domain", "ngrok_domain", "telegram_bot_token", "telegram_bot_token_2", "telegram_chat_id", "telegram_chat_id_2"]:
             if k in clean_cfg:
                 del clean_cfg[k]
         clean_cfg["enable_telegram"] = False
