@@ -1017,7 +1017,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
         if "D_chien_dau" in cfg and hasattr(self, 'combo_D_chien_dau'):
             val = cfg["D_chien_dau"]
             self.combo_D_chien_dau.set(val if val in ["Auto", "Click"] else "Auto")
-        tang_D_opts = ["Auto", "Trệt - 10", "11 - 14"]
+        tang_D_opts = ["Auto", "1 - 14", "Trệt - 10", "11 - 14"]
         if hasattr(self, 'combo_D_tang'):
             val = cfg.get("D_tang", "Auto")
             self.combo_D_tang.set(val if val in tang_D_opts else "Auto")
@@ -3812,7 +3812,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
         self.combo_D_chien_dau.set("Auto")
         self.combo_D_chien_dau.grid(row=1, column=0, sticky="ew", padx=(4, 0))
 
-        tang_options = ["Auto", "Trệt - 10", "11 - 14"]
+        tang_options = ["Auto", "1 - 14", "Trệt - 10", "11 - 14"]
         self.combo_D_tang = ctk.CTkOptionMenu(
             act_frame_D,
             values=tang_options,
@@ -8754,7 +8754,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             self.after(0, self.log_info, f"ℹ️ [{mode_name}] Bỏ qua Giai đoạn 1, 2 ➔ Bắt đầu Vòng lặp Giai đoạn 4 ➔ 7...")
 
         # --- LẶP GIAI ĐOẠN 4, 5, 6, 7 ---
-        max_loops = loop_count if (loop_count and loop_count > 0) else (3 if mode_name in ["Auto - Chặng 2", "11 - 14"] else 0)
+        max_loops = loop_count if (loop_count and loop_count > 0) else (3 if (mode_name in ["Auto - Chặng 2", "11 - 14"] or "Chặng 2" in mode_name) else 0)
         loop_idx = 0
         while not should_stop():
             loop_idx += 1
@@ -8890,9 +8890,10 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
 
             if max_loops > 0 and loop_idx >= max_loops:
                 self.after(0, self.log_info, f"✅ [NHỊ KIỀU] Đã hoàn thành đủ {max_loops} lượt lặp cho mốc '{mode_name}' thành công!")
-                if mode_name == "Auto - Chặng 2":
+                if "Chặng 2" in mode_name or mode_name in ["Auto - Chặng 2", "11 - 14"]:
+                    alert_title = "Tháp 14 Auto" if "Auto" in mode_name else ("Tháp 14 (1 - 14)" if "1 - 14" in mode_name else "Tháp 14")
                     self.send_telegram_alert(
-                        "🏯 [2K & NHỊ KIỀU]\n🎯 Tháp 14 Auto Hoàn Thành !",
+                        f"🏯 [2K & NHỊ KIỀU]\n🎯 {alert_title} Hoàn Thành !",
                         capture_screenshot=True,
                         tab_index=str(tab_index),
                         is_card_d=True,
@@ -8985,46 +8986,52 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1213 648"])
             time.sleep(0.4)
 
-    def _run_nhi_kieu_tang_auto(self, dnconsole_path: str, tab_index: str, card_name: str = "40 NPC"):
+    def _run_nhi_kieu_tang_auto(self, dnconsole_path: str, tab_index: str, card_name: str = "40 NPC", skip_stages_1_2: bool = False, custom_mode_name: str = "Auto"):
         """
-        QUY TRÌNH MỐC AUTO (NHỊ KIỀU):
-        - Chặng 1: Chạy Giai đoạn 1 ➔ 2, sau đó lặp Giai đoạn 4 ➔ 7 (với Chuỗi HP / SP / HS) đến khi thấy d_dinh.png ➔ Hoãn 5.0s.
+        QUY TRÌNH MỐC AUTO & 1 - 14 (NHỊ KIỀU):
+        - Chặng 1: 
+          + Auto: Chạy Giai đoạn 1 ➔ 2, sau đó lặp Giai đoạn 4 ➔ 7 (với Chuỗi HP / SP / HS) đến khi thấy d_dinh.png ➔ Hoãn 5.0s.
+          + 1 - 14: Bỏ qua Giai đoạn 1 & 2, chạy thẳng vòng lặp Giai đoạn 4 ➔ 7 (với Chuỗi HP / SP / HS) đến khi thấy d_dinh.png ➔ Hoãn 5.0s.
         - Thao tác Quân Sư lần 1: Mở Đội, gán Quân Sư nếu var_E_quan_su được tích, đóng Đội ➔ Hoãn 5.0s.
         - Chuỗi Buff Auto: Kích hoạt chuỗi HP / SP / HS riêng của Mốc Auto (_execute_buff_hp_sp_cycle_auto).
         - Chuyển tiếp Tháp 11: Quét d_thap11.png mỗi 1.0s ➔ Thấy ➔ Hoãn 20.0s.
         - Kiểm tra Đội & Quân Sư lần 2: Mở Đội, kiểm tra thành viên list_B, nếu thiếu mời qua Card E, đủ thì gán Quân Sư, đóng Đội ➔ Hoãn 5.0s.
-        - Chặng 2 (Tháp 11 ➔ Tháp 14): Chạy thẳng vòng lặp Giai đoạn 4 ➔ 7 (dùng Chuỗi HP / SP / HS) đến khi thấy d_thap14.png ➔ Hoàn thành!
+        - Chặng 2 (Tháp 11 ➔ Tháp 14): Chạy thẳng vòng lặp Giai đoạn 4 ➔ 7 (dùng Chuỗi HP / SP / HS) đến khi thấy d_thap14.png / hoàn thành 3 lượt ➔ Hoàn thành!
         """
         if self._should_stop_card_D(): return
 
-        # ---------------- CHẶNG 1: TRỆT ➔ ĐỈNH THÁP 10 ----------------
-        self.after(0, self.log_info, "🏰 [Nhị Kiều Auto - Chặng 1] Bắt đầu Chặng 1: Trệt ➔ Đỉnh Tháp 10...")
+        mode_title = custom_mode_name
+        tag_log = f"Nhị Kiều {mode_title}"
+        start_desc = "Đỉnh Tháp 1" if skip_stages_1_2 else "Trệt"
+
+        # ---------------- CHẶNG 1: TRỆT / ĐỈNH THÁP 1 ➔ ĐỈNH THÁP 10 ----------------
+        self.after(0, self.log_info, f"🏰 [{tag_log} - Chặng 1] Bắt đầu Chặng 1: {start_desc} ➔ Đỉnh Tháp 10...")
         self._run_nhi_kieu_tang_tret_10(
-            dnconsole_path, tab_index, loop_count=0, mode_name="Auto - Chặng 1",
-            run_stages_1_to_2=True, only_stages_1_to_2=False, check_until_dinh=True,
+            dnconsole_path, tab_index, loop_count=0, mode_name=f"{mode_title} - Chặng 1",
+            run_stages_1_to_2=(not skip_stages_1_2), only_stages_1_to_2=False, check_until_dinh=True,
             card_name=card_name, use_auto_buff=False, target_finish_img="card_d/nhikieu/d_dinh.png"
         )
         if self._should_stop_card_D(): return
 
-        self.after(0, self.log_info, "⏳ [Nhị Kiều Auto] Đã lên Đỉnh Tháp 10 ➔ Hoãn 5.0s...")
+        self.after(0, self.log_info, f"⏳ [{tag_log}] Đã lên Đỉnh Tháp 10 ➔ Hoãn 5.0s...")
         if self._sleep_with_stop_check(5.0): return
 
         # ---------------- THAO TÁC QUÂN SƯ LẦN 1 ----------------
-        self.after(0, self.log_info, "👑 [Nhị Kiều Auto] Bắt đầu Thao tác Quân Sư lần 1...")
+        self.after(0, self.log_info, f"👑 [{tag_log}] Bắt đầu Thao tác Quân Sư lần 1...")
         self._assign_quan_su_in_team(dnconsole_path, tab_index)
         if self._should_stop_card_D(): return
 
         # Hoãn 5 giây sau khi thao tác quân sư lần 1 xong
-        self.after(0, self.log_info, "⏳ [Nhị Kiều Auto] Hoãn 5.0s sau Quân Sư lần 1 trước khi kích hoạt Chuỗi Buff Auto...")
+        self.after(0, self.log_info, f"⏳ [{tag_log}] Hoãn 5.0s sau Quân Sư lần 1 trước khi kích hoạt Chuỗi Buff Auto...")
         if self._sleep_with_stop_check(5.0): return
 
         # ---------------- KÍCH HOẠT CHUỖI BUFF AUTO ----------------
-        self.after(0, self.log_info, "🔄 [Nhị Kiều Auto] Kích hoạt Chuỗi Buff HP / SP / HS (Chuyên biệt Auto)...")
-        self._execute_buff_hp_sp_cycle_auto(dnconsole_path, tab_index, log_tag="Nhị Kiều Auto - Đỉnh 10")
+        self.after(0, self.log_info, f"🔄 [{tag_log}] Kích hoạt Chuỗi Buff HP / SP / HS (Chuyên biệt Auto)...")
+        self._execute_buff_hp_sp_cycle_auto(dnconsole_path, tab_index, log_tag=f"{tag_log} - Đỉnh 10")
         if self._should_stop_card_D(): return
 
         # ---------------- CHUYỂN TIẾP THÁP 11 ----------------
-        self.after(0, self.log_info, "👁️ [Nhị Kiều Auto] Quét tìm 'card_d/nhikieu/d_thap11.png' (80%, ROI 1060, 0, 1280, 40) mỗi 1.0s...")
+        self.after(0, self.log_info, f"👁️ [{tag_log}] Quét tìm 'card_d/nhikieu/d_thap11.png' (80%, ROI 1060, 0, 1280, 40) mỗi 1.0s...")
         while not self._should_stop_card_D():
             t11_x, t11_y = self._find_template_on_screen(
                 dnconsole_path, tab_index, "card_d/nhikieu/d_thap11.png",
@@ -9033,7 +9040,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             if t11_x is not None and t11_y is not None:
                 self.after(0, self.log_info, f"🎯 Mắt thần phát hiện 'card_d/nhikieu/d_thap11.png' tại ({t11_x}, {t11_y}) ➔ Hoãn 20.0s chuẩn bị...")
                 self.send_telegram_alert(
-                    "🏯 [2K & NHỊ KIỀU]\n🎯 Bắt Đầu Tháp 11 !",
+                    f"🏯 [2K & NHỊ KIỀU]\n🎯 Bắt Đầu Tháp 11 ({mode_title}) !",
                     capture_screenshot=True,
                     tab_index=str(tab_index),
                     is_card_d=True,
@@ -9046,24 +9053,24 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
         if self._sleep_with_stop_check(20.0): return
 
         # ---------------- KIỂM TRA ĐỦ ĐỘI & QUÂN SƯ LẦN 2 ----------------
-        self.after(0, self.log_info, "👥 [Nhị Kiều Auto] Kiểm tra đội hình & Chỉ định Quân Sư lần 2...")
+        self.after(0, self.log_info, f"👥 [{tag_log}] Kiểm tra đội hình & Chỉ định Quân Sư lần 2...")
         self._check_team_and_assign_quan_su_stage2(dnconsole_path, tab_index)
         if self._should_stop_card_D(): return
 
-        self.after(0, self.log_info, "⏳ [Nhị Kiều Auto] Hoãn 5.0s trước khi bắt đầu Chặng 2 (Tháp 11 ➔ 14)...")
+        self.after(0, self.log_info, f"⏳ [{tag_log}] Hoãn 5.0s trước khi bắt đầu Chặng 2 (Tháp 11 ➔ 14)...")
         if self._sleep_with_stop_check(5.0): return
 
         # ---------------- CHẶNG 2: THÁP 11 ➔ THÁP 14 ----------------
-        self.after(0, self.log_info, "🚀 [Nhị Kiều Auto - Chặng 2] Bắt đầu Chặng 2: Tháp 11 ➔ Tháp 14 (Lặp lại đúng 3 lần, Vòng lặp GĐ 4-7 với Chuỗi HP / SP / HS)...")
+        self.after(0, self.log_info, f"🚀 [{tag_log} - Chặng 2] Bắt đầu Chặng 2: Tháp 11 ➔ Tháp 14 (Lặp lại đúng 3 lần, Vòng lặp GĐ 4-7 với Chuỗi HP / SP / HS)...")
         self._run_nhi_kieu_tang_tret_10(
-            dnconsole_path, tab_index, loop_count=3, mode_name="Auto - Chặng 2",
+            dnconsole_path, tab_index, loop_count=3, mode_name=f"{mode_title} - Chặng 2",
             run_stages_1_to_2=False, only_stages_1_to_2=False, check_until_dinh=True,
             card_name=card_name, use_auto_buff=False, target_finish_img="card_d/nhikieu/d_dinh.png"
         )
         if self._should_stop_card_D(): return
 
-        self.after(0, self.log_info, "🎉 [Nhị Kiều Auto] Đã hoàn thành toàn diện toàn bộ quy trình Auto Nhị Kiều (Trệt ➔ Tháp 14)!")
-        self.after(0, lambda: self._send_notification("🎉 Auto Nhị Kiều Hoàn Thành", "Đã hoàn thành toàn bộ leo tháp Nhị Kiều đến Tháp 14 thành công!"))
+        self.after(0, self.log_info, f"🎉 [{tag_log}] Đã hoàn thành toàn diện toàn bộ quy trình {mode_title} Nhị Kiều ({start_desc} ➔ Tháp 14)!")
+        self.after(0, lambda: self._send_notification(f"🎉 {mode_title} Nhị Kiều Hoàn Thành", f"Đã hoàn thành toàn bộ leo tháp Nhị Kiều ({mode_title}) đến Tháp 14 thành công!"))
 
     def _run_nhi_kieu_tang(self, dnconsole_path: str, tab_index: str, selected_tang: str, card_name: str = "40 NPC"):
         """THAO TÁC: TẦNG / ĐÀI (NHỊ KIỀU)"""
@@ -9073,7 +9080,9 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
         self.after(0, self.log_info, f"🚀 {prefix_tag} Khởi chạy ô Tầng (Mốc: '{selected_tang}')...")
 
         if selected_tang == "Auto":
-            self._run_nhi_kieu_tang_auto(dnconsole_path, tab_index, card_name=card_name)
+            self._run_nhi_kieu_tang_auto(dnconsole_path, tab_index, card_name=card_name, skip_stages_1_2=False, custom_mode_name="Auto")
+        elif selected_tang == "1 - 14":
+            self._run_nhi_kieu_tang_auto(dnconsole_path, tab_index, card_name=card_name, skip_stages_1_2=True, custom_mode_name="1 - 14")
         elif selected_tang in ["Trệt - 10", "Trệt"]:
             # Gộp thao tác Trệt (Giai đoạn 1 -> 2) và 1-10 (Vòng lặp Giai đoạn 4 -> 7 đến khi thấy d_dinh.png)
             self._run_nhi_kieu_tang_tret_10(dnconsole_path, tab_index, loop_count=0, mode_name="Trệt - 10", run_stages_1_to_2=True, only_stages_1_to_2=False, check_until_dinh=True, card_name=card_name)

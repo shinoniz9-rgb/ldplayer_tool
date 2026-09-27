@@ -1592,6 +1592,7 @@ HTML_PAGE = """<!DOCTYPE html>
                             <label style="display:block; font-size:0.72rem; color:#9CA3AF; margin-bottom:4px; white-space:nowrap;">Mốc tầng:</label>
                             <select id="combo_D_tang" style="width:100%; font-size:0.78rem; padding:4px 4px;" onchange="onComboChanged('D_tang', this.value)">
                                 <option value="Auto" selected>Auto</option>
+                                <option value="1 - 14">1 - 14</option>
                                 <option value="Trệt - 10">Trệt - 10</option><option value="11 - 14">11 - 14</option>
                             </select>
                         </div>
