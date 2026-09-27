@@ -1606,9 +1606,14 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
     def _tap_login_auto_twice(self, dnconsole_path: str, tab_index: str):
         """Tap 2 lần cách nhau 0.15s vào tọa độ nút Auto (190, 140)"""
         for tap_idx in range(1, 3):
-            if self.stop_requested or not (hasattr(self, 'var_buff') and self.var_buff.get()):
+            is_f_buff = hasattr(self, 'var_buff') and self.var_buff.get()
+            is_d_active = hasattr(self, 'var_switch_D') and self.var_switch_D.get() and not (hasattr(self, '_should_stop_card_D') and self._should_stop_card_D())
+            is_defense = (hasattr(self, 'var_phong_thu') and self.var_phong_thu.get()) or (hasattr(self, 'var_ket_gioi') and self.var_ket_gioi.get()) or (hasattr(self, 'var_linh_kinh') and self.var_linh_kinh.get()) or (hasattr(self, 'var_bang_tuong') and self.var_bang_tuong.get())
+
+            if self.stop_requested or not (is_f_buff or is_d_active or is_defense):
                 break
-            self.after(0, self.log_info, f"👉 [HP / SP] Tap nút Auto (190, 140) lần {tap_idx}/2...")
+            log_tag = "Card D" if is_d_active else ("Phòng Thủ" if is_defense else "HP / SP")
+            self.after(0, self.log_info, f"👉 [{log_tag}] Tap nút Auto (190, 140) lần {tap_idx}/2...")
             self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 190 140"])
             time.sleep(0.15)
 
