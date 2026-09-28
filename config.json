@@ -5,7 +5,6 @@
     "B_don_char": "Xuất Chiến",
     "B_team_char": "Vị Trí 1",
     "A_char": "Vị Trí 2",
-    "A_ve": "3",
     "D_team_char": "Vị Trí 2",
     "D_chien_dau": "Auto",
     "D_tang": "Auto",
@@ -110,7 +109,9 @@
             "var_linh_kinh": false,
             "combo_linh_kinh": "Team",
             "var_bang_tuong": false,
-            "combo_bang_tuong": "Team"
+            "combo_bang_tuong": "Team",
+            "var_nhan_thu": false,
+            "combo_nhan_thu_time": "Tất Cả"
         },
         "TS Test": {
             "server": "Điêu Thuyền",
@@ -159,7 +160,9 @@
             "var_linh_kinh": false,
             "combo_linh_kinh": "Chart",
             "var_bang_tuong": false,
-            "combo_bang_tuong": "Chart"
+            "combo_bang_tuong": "Chart",
+            "var_nhan_thu": false,
+            "combo_nhan_thu_time": "Tất Cả"
         },
         "Main": {
             "server": "Điêu Thuyền",
@@ -186,7 +189,7 @@
             "C3": true,
             "switch_D": false,
             "D2": true,
-            "D3": false,
+            "D3": true,
             "D4": false,
             "E_list_B": [
                 "ChaBong",
@@ -208,7 +211,11 @@
             "combo_phong_thu_skill": "Băng Tường",
             "combo_phong_thu_target": "Chart",
             "var_truy_kich": false,
-            "combo_truy_kich_quai": "(Chưa có quái)"
+            "combo_truy_kich_quai": "(Chưa có quái)",
+            "var_nhan_thu": false,
+            "combo_nhan_thu_time": "Tất Cả",
+            "var_hen_gio": false,
+            "var_hen_gio_time": "05:00"
         },
         "Clone": {
             "server": "Điêu Thuyền",
@@ -256,7 +263,15 @@
             "var_linh_kinh": false,
             "combo_linh_kinh": "Chart",
             "var_bang_tuong": false,
-            "combo_bang_tuong": "Chart"
+            "combo_bang_tuong": "Chart",
+            "var_nhan_thu": false,
+            "combo_nhan_thu_time": "Tất Cả",
+            "var_hen_gio": false,
+            "var_hen_gio_time": "05:00"
         }
-    }
+    },
+    "var_nhan_thu": false,
+    "combo_nhan_thu_time": "Tất Cả",
+    "var_hen_gio": false,
+    "var_hen_gio_time": "05:00"
 }

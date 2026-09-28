@@ -9,7 +9,6 @@ import cv2
 import numpy as np
 import unicodedata
 import re
-import difflib
 import sys
 import tempfile
 import multiprocessing
@@ -62,7 +61,7 @@ class ToolLDPlayerGUI(ctk.CTk):
 
         # --- CẤU HÌNH CỬA SỔ CHÍNH (CỐ ĐỊNH TOOL TỔNG) ---
         self.title("TS Origin-Control")
-        self.geometry("500x490")
+        self.geometry("500x525")
         self.resizable(False, False)
 
         # Đăng ký sự kiện nút X (Thu nhỏ xuống khay hệ thống)
@@ -133,10 +132,21 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.var_bang_tuong = self.var_phong_thu
         self.var_truy_kich = ctk.BooleanVar(value=False)
 
+        # Tab Ngày: Quản lý tính năng Hoạt Động Ngày (Nhận Thư)
+        self.var_nhan_thu = ctk.BooleanVar(value=False)
+        self._event_nhan_thu = threading.Event()
+        self._completed_mail_slots = set()
+
+        # Quản lý tính năng Hẹn Giờ chạy các Card A, B, C, D
+        self.var_hen_gio = ctk.BooleanVar(value=False)
+        self.var_hen_gio_time = ctk.StringVar(value="05:00")
+        self._event_hen_gio = threading.Event()
+
         # Quản lý luồng tiến trình độc lập Tab Chiến Đấu (chống lag giật / nhân bản luồng)
         self._thread_buff = None
         self._thread_phong_thu = None
         self._thread_truy_kich = None
+        self._is_card_E_scanning = False
 
         # Quản lý hàng đợi tuần tự chống xung đột cho Card A (Boss Thế Giới) & Card B (Phụ Bản Đơn/Đội)
         self._card_AB_coordinator_running = False
@@ -162,8 +172,8 @@ class ToolLDPlayerGUI(ctk.CTk):
         # Nạp cấu hình đã lưu
         self.load_config()
 
-        # Căn giữa cửa sổ ứng dụng trên màn hình Desktop (Kích thước cố định 500x490)
-        self._center_window(500, 490)
+        # Căn giữa cửa sổ ứng dụng trên màn hình Desktop (Kích thước cố định 500x525)
+        self._center_window(500, 525)
 
         # Quét danh sách LDPlayer lần đầu tiên
         self.refresh_ld_tabs_async()
@@ -172,10 +182,13 @@ class ToolLDPlayerGUI(ctk.CTk):
         self.recent_logs = []
         self.after(600, lambda: web_server.start_web_server(self, port=8080))
 
-        # Luồng ngầm tự động nhận thư lúc 10H01 Tối (kích hoạt sau 60 giây mở tool, chạy suốt)
+        # Luồng ngầm tự động nhận thư theo mốc giờ (tĩnh hoàn toàn khi tắt, kích hoạt qua _event_nhan_thu khi ô Nhận Thư được tích)
         threading.Thread(target=self._worker_auto_mail_daemon, daemon=True).start()
 
-    def _center_window(self, width: int = 500, height: int = 490):
+        # Luồng ngầm hẹn giờ thực thi các Card A, B, C, D
+        threading.Thread(target=self._worker_hen_gio_daemon, daemon=True).start()
+
+    def _center_window(self, width: int = 500, height: int = 525):
         """Căn giữa cửa sổ ứng dụng trên màn hình Desktop (kích thước cố định)"""
         self.update_idletasks()
         screen_width = self.winfo_screenwidth()
@@ -982,6 +995,18 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
         if hasattr(self, 'combo_truy_kich_quai'):
             cfg["combo_truy_kich_quai"] = self.combo_truy_kich_quai.get()
 
+        # Tab Ngày (Hoạt Động Ngày - Nhận Thư)
+        if hasattr(self, 'var_nhan_thu'):
+            cfg["var_nhan_thu"] = self.var_nhan_thu.get()
+        if hasattr(self, 'combo_nhan_thu_time'):
+            cfg["combo_nhan_thu_time"] = self.combo_nhan_thu_time.get()
+
+        # Quản lý Hẹn Giờ
+        if hasattr(self, 'var_hen_gio'):
+            cfg["var_hen_gio"] = self.var_hen_gio.get()
+        if hasattr(self, 'var_hen_gio_time'):
+            cfg["var_hen_gio_time"] = self.var_hen_gio_time.get()
+
         return cfg
 
     def _apply_tab_config_to_ui(self, cfg: dict):
@@ -1140,6 +1165,38 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
         # Đảm bảo nguyên tắc loại trừ lẫn nhau cho ô chiến đấu khi nạp cấu hình
         if hasattr(self, 'var_buff') and self.var_buff.get():
             if hasattr(self, 'var_phong_thu'): self.var_phong_thu.set(False)
+
+        # Tab Ngày: Hoạt Động Ngày (Nhận Thư)
+        nhan_thu_opts = ["Tất Cả", "12H01", "18H01", "22H01"]
+        if "combo_nhan_thu_time" in cfg and hasattr(self, 'combo_nhan_thu_time'):
+            val_nt_time = cfg["combo_nhan_thu_time"]
+            if val_nt_time in ["Tất Cả (12H01 - 18H01 - 22H01)", "Tất Cả"]:
+                val_nt_time = "Tất Cả"
+            self.combo_nhan_thu_time.set(val_nt_time if val_nt_time in nhan_thu_opts else "Tất Cả")
+
+        if "var_nhan_thu" in cfg and hasattr(self, 'var_nhan_thu'):
+            is_nt = bool(cfg["var_nhan_thu"])
+            self.var_nhan_thu.set(is_nt)
+            if hasattr(self, '_event_nhan_thu'):
+                if is_nt:
+                    self._event_nhan_thu.set()
+                else:
+                    self._event_nhan_thu.clear()
+
+        # Hẹn Giờ
+        if "var_hen_gio_time" in cfg and hasattr(self, 'var_hen_gio_time'):
+            val_hg_time = cfg["var_hen_gio_time"]
+            self.var_hen_gio_time.set(val_hg_time)
+            if hasattr(self, 'combo_hen_gio_time') and hasattr(self.combo_hen_gio_time, 'set'):
+                self.combo_hen_gio_time.set(val_hg_time)
+        if "var_hen_gio" in cfg and hasattr(self, 'var_hen_gio'):
+            is_hg = bool(cfg["var_hen_gio"])
+            self.var_hen_gio.set(is_hg)
+            if hasattr(self, '_event_hen_gio'):
+                if is_hg:
+                    self._event_hen_gio.set()
+                else:
+                    self._event_hen_gio.clear()
 
         self._update_card_E_visibility()
         self._update_card_D_row2_state()
@@ -1350,12 +1407,51 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
         self.log_info(f"💾 Đã ghi nhớ máy chủ: '{choice}'")
 
     def _create_ld_path_card(self):
-        """Card hiển thị đường dẫn thư mục LDPlayer9 & Nút Chọn Thư Mục bên dưới cùng"""
+        """Card hiển thị Hẹn Giờ, đường dẫn thư mục LDPlayer9 & Nút Chọn Thư Mục bên dưới cùng"""
         self.card_path = ctk.CTkFrame(self, corner_radius=8)
         self.card_path.grid(row=2, column=0, padx=10, pady=(2, 6), sticky="nsew")
         self.card_path.grid_columnconfigure(0, weight=1)
         self.card_path.grid_columnconfigure(1, weight=0)
 
+        # Hàng 1: [ ] Hẹn Giờ  -  Menu/Ô chọn thời gian (HH:MM)
+        self.frame_hen_gio = ctk.CTkFrame(self.card_path, fg_color="transparent")
+        self.frame_hen_gio.grid(row=0, column=0, columnspan=2, padx=8, pady=(4, 2), sticky="ew")
+
+        self.chk_hen_gio = ctk.CTkCheckBox(
+            self.frame_hen_gio,
+            text="Hẹn Giờ",
+            variable=self.var_hen_gio,
+            command=self._on_hen_gio_toggled,
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+            fg_color="#EA580C",
+            hover_color="#C2410C",
+            text_color="#FFFFFF",
+            height=22,
+            checkbox_width=18,
+            checkbox_height=18
+        )
+        self.chk_hen_gio.pack(side="left", padx=(2, 8))
+
+        self.entry_hen_gio_time = ctk.CTkEntry(
+            self.frame_hen_gio,
+            textvariable=self.var_hen_gio_time,
+            width=70,
+            height=24,
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+            text_color="#FFFFFF",
+            fg_color="#1F2937",
+            border_width=1,
+            border_color="#374151",
+            justify="center",
+            placeholder_text="05:00"
+        )
+        self.entry_hen_gio_time.pack(side="left", padx=(0, 4))
+        self.entry_hen_gio_time.bind("<FocusOut>", lambda e: self._on_hen_gio_time_changed())
+        self.entry_hen_gio_time.bind("<Return>", lambda e: self._on_hen_gio_time_changed())
+        # Alias đảm bảo tương thích
+        self.combo_hen_gio_time = self.entry_hen_gio_time
+
+        # Hàng 2: Đường dẫn LDPlayer
         self.entry_ld_path = ctk.CTkEntry(
             self.card_path,
             textvariable=self.var_ld_path,
@@ -1366,7 +1462,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             border_width=1,
             border_color="#374151"
         )
-        self.entry_ld_path.grid(row=0, column=0, padx=(8, 4), pady=5, sticky="ew")
+        self.entry_ld_path.grid(row=1, column=0, padx=(8, 4), pady=(2, 3), sticky="ew")
         self.entry_ld_path.bind("<FocusOut>", lambda e: self._on_ld_path_entry_changed())
         self.entry_ld_path.bind("<Return>", lambda e: self._on_ld_path_entry_changed())
 
@@ -1381,11 +1477,11 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             hover_color="#0284C7",
             command=self._browse_ld_path
         )
-        self.btn_browse_ld.grid(row=0, column=1, padx=(4, 8), pady=(5, 2), sticky="e")
+        self.btn_browse_ld.grid(row=1, column=1, padx=(4, 8), pady=(2, 3), sticky="e")
 
-        # Row 1: Khung Đường Link Web Server Điều Khiển Từ Xa
+        # Hàng 3: Khung Đường Link Web Server Điều Khiển Từ Xa (Tạo Link 4G)
         self.frame_web_bar = ctk.CTkFrame(self.card_path, fg_color="#111827", corner_radius=6, border_width=1, border_color="#374151")
-        self.frame_web_bar.grid(row=1, column=0, columnspan=2, padx=8, pady=(2, 6), sticky="ew")
+        self.frame_web_bar.grid(row=2, column=0, columnspan=2, padx=8, pady=(2, 5), sticky="ew")
         self.frame_web_bar.grid_columnconfigure(0, weight=1)
         self.frame_web_bar.grid_columnconfigure(1, weight=0)
 
@@ -1491,6 +1587,38 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             self.lbl_web_url.configure(text=f"🌐 Wifi: {local_url}")
             self.current_web_url = local_url
         self.log_warning("⚠️ Đường truyền 4G đã dừng. Bấm 'Retry Online' nếu muốn kết nối lại.")
+
+    def _on_hen_gio_toggled(self):
+        """Xử lý khi người dùng bật / tắt ô tích Hẹn Giờ"""
+        is_enabled = bool(self.var_hen_gio.get()) if hasattr(self, 'var_hen_gio') else False
+        t = self.var_hen_gio_time.get() if hasattr(self, 'var_hen_gio_time') else "05:00"
+        if is_enabled:
+            if hasattr(self, '_event_hen_gio'):
+                self._event_hen_gio.set()
+            self.after(0, self.log_info, f"⏰ [HẸN GIỜ] Đã bật chế độ Hẹn Giờ (Mốc: {t}). Các Card (A, B, C, D) khi gạt ON sẽ chờ đến đúng {t} mới bắt đầu chạy!")
+        else:
+            if hasattr(self, '_event_hen_gio'):
+                self._event_hen_gio.clear()
+            # Theo yêu cầu người dùng: Khi bỏ tích ô Hẹn Giờ -> Hủy hẹn giờ và nhả công tắc các Card về OFF
+            for prefix in ["A", "B", "C", "D"]:
+                switch_attr = f"var_switch_{prefix}"
+                if hasattr(self, switch_attr):
+                    getattr(self, switch_attr).set(False)
+            if hasattr(self, 'var_pause_D'):
+                self.var_pause_D.set(False)
+            self._update_card_E_visibility()
+            self.after(0, self.log_info, "🛑 [HẸN GIỜ] Đã tắt Hẹn Giờ ➔ Đã hủy hẹn giờ và nhả tất cả công tắc Card A, B, C, D về OFF!")
+        self.save_config()
+
+    def _on_hen_gio_time_changed(self, choice=None):
+        """Xử lý khi thay đổi mốc giờ hẹn (gõ trực tiếp định dạng HH:MM)"""
+        val = self.var_hen_gio_time.get().strip() if hasattr(self, 'var_hen_gio_time') else "05:00"
+        if len(val) == 4 and val[1] == ':':
+            val = f"0{val}"
+            self.var_hen_gio_time.set(val)
+        self.save_config()
+        if hasattr(self, 'var_hen_gio') and self.var_hen_gio.get():
+            self.after(0, self.log_info, f"⏰ [HẸN GIỜ] Đã cập nhật mốc hẹn giờ mới: {val}")
 
     def _browse_ld_path(self):
         """Mở hộp thoại chọn thư mục LDPlayer9"""
@@ -3256,7 +3384,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
 
 
     def _on_switch_C_toggled(self):
-        """Callback công tắc Card DỊ GIỚI: Gạt ON ➔ Khởi chạy độc lập ngay lập tức; Gạt OFF ➔ Dừng tiến trình card này"""
+        """Callback công tắc Card DỊ GIỚI: Gạt ON ➔ Chạy hoặc xếp hàng tuần tự; Gạt OFF ➔ Dừng tiến trình card này"""
         self._on_checkbox_toggled()
         if not self.var_switch_C.get():
             self.save_config()
@@ -3277,25 +3405,13 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                 self.save_config()
                 return
 
-            if hasattr(self, '_thread_card_C') and self._thread_card_C and self._thread_card_C.is_alive():
-                return
             self.save_config()
-            self.log_info(f"⚡ [DỊ GIỚI] Công tắc vừa trượt ON ➔ Khởi chạy ngay thao tác Dị Giới trên Tab: {tab_name} (Index: {tab_index})...")
-            self._thread_card_C = threading.Thread(target=self._run_card_C_di_gioi_standalone, args=(dnconsole_path, tab_name, tab_index), daemon=True)
-            self._thread_card_C.start()
+            if hasattr(self, 'var_hen_gio') and self.var_hen_gio.get():
+                t = self.var_hen_gio_time.get() if hasattr(self, 'var_hen_gio_time') else "05:00"
+                self.log_info(f"⏰ [HẸN GIỜ] Card Dị Giới (C) đã bật ON và được lên lịch chờ đến mốc {t}!")
+                return
 
-    def _run_card_C_di_gioi_standalone(self, dnconsole_path: str, tab_name: str, tab_index: str):
-        """Worker thread thực thi độc lập cho Card Dị Giới khi bật công tắc B (tự động reset switch khi xong hoặc gặp lỗi)"""
-        try:
-            self._execute_card_C_di_gioi(dnconsole_path, tab_name, tab_index)
-        except Exception as e:
-            self.after(0, self.log_error, f"❌ Lỗi luồng Card Dị Giới: {str(e)}")
-        finally:
-            self.after(0, lambda: self.var_switch_C.set(False))
-            self.after(0, self.save_config)
-            self.after(0, self.log_info, "🛑 [DỊ GIỚI] Đã kết thúc thao tác Card Dị Giới ➔ Tự động nhả công tắc về OFF!")
-            msg_C = "🌌 [CARD C: DỊ GIỚI ĐÊM]\n✅ Đã hoàn thành toàn bộ chu kỳ Dị Giới Đêm"
-            self.send_telegram_alert(msg_C, capture_screenshot=True, tab_index=str(tab_index))
+            self._trigger_card_AB_workflow("Dị Giới")
 
     def _on_switch_B_toggled(self):
         """Callback công tắc Card PHỤ BẢN ĐƠN / ĐỘI: Gạt ON ➔ Tự chạy hoặc xếp hàng; Gạt OFF ➔ Dừng card này"""
@@ -3306,6 +3422,11 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             self.log_info("🛑 [CARD PHỤ BẢN ĐƠN / ĐỘI] Công tắc gạt về OFF ➔ Đã dừng tiến trình Card Phụ Bản!")
         else:
             self._update_card_E_visibility()
+            self.save_config()
+            if hasattr(self, 'var_hen_gio') and self.var_hen_gio.get():
+                t = self.var_hen_gio_time.get() if hasattr(self, 'var_hen_gio_time') else "05:00"
+                self.log_info(f"⏰ [HẸN GIỜ] Card Phụ Bản Đơn / Đội (B) đã bật ON và được lên lịch chờ đến mốc {t}!")
+                return
             self._trigger_card_AB_workflow("Phụ Bản Đơn / Đội")
 
     def _on_switch_A_toggled(self):
@@ -3315,10 +3436,15 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             self.save_config()
             self.log_info("🛑 [CARD BOSS THẾ GIỚI] Công tắc gạt về OFF ➔ Đã dừng tiến trình Card Boss Thế Giới!")
         else:
+            self.save_config()
+            if hasattr(self, 'var_hen_gio') and self.var_hen_gio.get():
+                t = self.var_hen_gio_time.get() if hasattr(self, 'var_hen_gio_time') else "05:00"
+                self.log_info(f"⏰ [HẸN GIỜ] Card Boss Thế Giới (A) đã bật ON và được lên lịch chờ đến mốc {t}!")
+                return
             self._trigger_card_AB_workflow("Boss Thế Giới")
 
     def _on_switch_D_toggled(self):
-        """Callback riêng cho công tắc Card B (40 NPC): Khi trượt sang OFF -> Ngắt tiến trình & nhả ô Tạm Dừng, giữ nguyên các ô check"""
+        """Callback riêng cho công tắc Card 40 NPC / Nhị Kiều: Khi gạt ON ➔ Chạy hoặc xếp hàng tuần tự; Gạt OFF ➔ Ngắt tiến trình"""
         self._on_checkbox_toggled()
         if not self.var_switch_D.get():
             if hasattr(self, 'var_pause_D'):
@@ -3345,12 +3471,13 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                 self.save_config()
                 return
 
-            if hasattr(self, '_thread_card_D') and self._thread_card_D and self._thread_card_D.is_alive():
-                return
             self.save_config()
-            self.log_info(f"⚡ [40 NPC] Công tắc vừa trượt ON ➔ Khởi chạy ngay thao tác trên Tab: {tab_name} (Index: {tab_index})...")
-            self._thread_card_D = threading.Thread(target=self._run_card_D_40_npc_standalone, args=(dnconsole_path, tab_name, tab_index), daemon=True)
-            self._thread_card_D.start()
+            if hasattr(self, 'var_hen_gio') and self.var_hen_gio.get():
+                t = self.var_hen_gio_time.get() if hasattr(self, 'var_hen_gio_time') else "05:00"
+                self.log_info(f"⏰ [HẸN GIỜ] Card 40 NPC / Nhị Kiều (D) đã bật ON và được lên lịch chờ đến mốc {t}!")
+                return
+
+            self._trigger_card_AB_workflow("40 NPC / Nhị Kiều")
 
     def _on_pause_D_toggled(self):
         """Callback nút Dừng ở Card 40 NPC: Tích vào thì tạm dừng, nhả ra chạy tiếp"""
@@ -3384,15 +3511,16 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
         )
         self.tabview.grid(row=1, column=0, padx=10, pady=2, sticky="nsew")
 
-        # Khởi tạo 4 Tab chính theo đúng thứ tự
-        tab_ctrl = self.tabview.add("🎮 Hoạt Động")
-        tab_team = self.tabview.add("👥 Tổ Đội")
-        tab_combat = self.tabview.add("⚔️ Chiến Đấu")
-        tab_logs = self.tabview.add("📜 Nhật Ký")
+        # Khởi tạo 5 Tab chính theo đúng thứ tự (không dùng biểu tượng)
+        tab_ctrl = self.tabview.add("Hoạt Động")
+        tab_team = self.tabview.add("Tổ Đội")
+        tab_daily = self.tabview.add("Ngày")
+        tab_combat = self.tabview.add("Chiến Đấu")
+        tab_logs = self.tabview.add("Nhật Ký")
 
-        # Cấu hình đồng bộ kích thước khung chữ bằng nhau 100% cho cả 4 nút Tab
+        # Cấu hình đồng bộ kích thước khung chữ bằng nhau 100% cho cả 5 nút Tab
         if hasattr(self.tabview, "_segmented_button"):
-            self.tabview._segmented_button.grid_columnconfigure((0, 1, 2, 3), weight=1, uniform="equal_tabs")
+            self.tabview._segmented_button.grid_columnconfigure((0, 1, 2, 3, 4), weight=1, uniform="equal_tabs")
 
         # ------------------- TAB 1: 🎮 HOẠT ĐỘNG (CARDS A, B, C, D) -------------------
         # Hàng 1: Card A (Boss Thế Giới) | Card C (Dị Giới)
@@ -4012,6 +4140,66 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
         self._render_E_list_B_ui()
 
         # =========================================================================
+        # 📅 GIAO DIỆN HOẠT ĐỘNG NGÀY (TAB NGÀY)
+        # =========================================================================
+        self.card_daily = ctk.CTkFrame(tab_daily, corner_radius=10)
+        self.card_daily.pack(fill="both", expand=True, padx=6, pady=6)
+        self.card_daily.grid_columnconfigure(0, weight=1)
+        self.card_daily.grid_rowconfigure(0, weight=0)
+        self.card_daily.grid_rowconfigure(1, weight=0)
+
+        hdr_daily = ctk.CTkFrame(self.card_daily, fg_color="transparent")
+        hdr_daily.grid(row=0, column=0, padx=8, pady=(6, 2), sticky="ew")
+        hdr_daily.grid_columnconfigure(0, weight=1)
+
+        lbl_daily = ctk.CTkLabel(
+            hdr_daily,
+            text="HOẠT ĐỘNG NGÀY",
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            text_color="#38BDF8"
+        )
+        lbl_daily.grid(row=0, column=0, sticky="w")
+
+        # Hàng 1: [ ] Nhận Thư | Menu Mốc Giờ (12H01 / 18H01 / 22H01 / Tất Cả)
+        row_daily1 = ctk.CTkFrame(self.card_daily, fg_color="transparent")
+        row_daily1.grid(row=1, column=0, padx=6, pady=6, sticky="ew")
+
+        self.chk_nhan_thu = ctk.CTkCheckBox(
+            row_daily1,
+            text="Nhận Thư",
+            variable=self.var_nhan_thu,
+            command=self._on_nhan_thu_toggled,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            fg_color="#EA580C",
+            hover_color="#C2410C",
+            checkmark_color="#FFFFFF",
+            checkbox_width=16,
+            checkbox_height=16,
+            border_width=2,
+            corner_radius=5
+        )
+        self.chk_nhan_thu.pack(side="left", padx=(4, 6))
+
+        nhan_thu_time_options = ["Tất Cả", "12H01", "18H01", "22H01"]
+        self.combo_nhan_thu_time = ctk.CTkOptionMenu(
+            row_daily1,
+            values=nhan_thu_time_options,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
+            dropdown_font=ctk.CTkFont(family="Segoe UI", size=13, weight="normal"),
+            text_color="#FFFFFF",
+            dropdown_text_color="#FFFFFF",
+            height=25,
+            width=114,
+            dynamic_resizing=False,
+            fg_color="#374151",
+            button_color="#4B5563",
+            button_hover_color="#6B7280",
+            command=lambda choice: self.save_config()
+        )
+        self.combo_nhan_thu_time.set("Tất Cả")
+        self.combo_nhan_thu_time.pack(side="right", padx=(0, 4))
+
+        # =========================================================================
         # 🔓 [ĐÃ MỞ KHÓA TOÀN DIỆN - SẴN SÀNG SỬ DỤNG]: GIAO DIỆN CARD F (CẤU HÌNH CHIẾN ĐẤU)
         # =========================================================================
         self.card_combat = ctk.CTkFrame(tab_combat, corner_radius=10)
@@ -4031,7 +4219,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
         lbl_combat = ctk.CTkLabel(
             hdr_combat,
             text="CẤU HÌNH CHIẾN ĐẤU",
-            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
             text_color="#38BDF8"
         )
         lbl_combat.grid(row=0, column=0, sticky="w")
@@ -4988,15 +5176,21 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
 
     # ---- HỆ THỐNG ĐIỀU PHỐI HÀNG ĐỢI TUẦN TỰ CHO CARD BOSS THẾ GIỚI (A) & PHỤ BẢN ĐƠN/ĐỘI (B) ----
     def _trigger_card_AB_workflow(self, card_name: str):
-        """Kích hoạt hoặc xếp hàng chờ điều phối chạy tuần tự cho Card A / Card B"""
+        """Kích hoạt hoặc xếp hàng chờ điều phối chạy tuần tự cho các Card (A, B, C, D)"""
         tab_name, tab_index = self._get_selected_ld_info()
         if tab_index is None:
             self.log_error(f"Vui lòng chọn một Tab LDPlayer trước khi bật công tắc Card {card_name}!")
             if card_name == "Boss Thế Giới":
                 self.var_switch_A.set(False)
-            else:
+            elif card_name == "Phụ Bản Đơn / Đội":
                 self.var_switch_B.set(False)
                 self._update_card_E_visibility()
+            elif card_name == "Dị Giới":
+                self.var_switch_C.set(False)
+            elif card_name == "40 NPC / Nhị Kiều":
+                self.var_switch_D.set(False)
+                if hasattr(self, 'var_pause_D'):
+                    self.var_pause_D.set(False)
             self.save_config()
             return
 
@@ -5005,9 +5199,15 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             self.log_error(f"Không tìm thấy ldconsole/dnconsole tại: {self.ld_path}")
             if card_name == "Boss Thế Giới":
                 self.var_switch_A.set(False)
-            else:
+            elif card_name == "Phụ Bản Đơn / Đội":
                 self.var_switch_B.set(False)
                 self._update_card_E_visibility()
+            elif card_name == "Dị Giới":
+                self.var_switch_C.set(False)
+            elif card_name == "40 NPC / Nhị Kiều":
+                self.var_switch_D.set(False)
+                if hasattr(self, 'var_pause_D'):
+                    self.var_pause_D.set(False)
             self.save_config()
             return
 
@@ -5023,7 +5223,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             threading.Thread(target=self._run_card_AB_coordinator, daemon=True).start()
 
     def _run_card_AB_coordinator(self):
-        """Worker thread điều phối chạy tuần tự Card A (Boss Thế Giới) và Card B (Phụ Bản Đơn/Đội) theo hàng đợi chống xung đột"""
+        """Worker thread điều phối chạy tuần tự các Card (A ➔ B ➔ C ➔ D) theo hàng đợi chống xung đột"""
         try:
             while not self.stop_requested:
                 tab_name, tab_index = self._get_selected_ld_info()
@@ -5051,9 +5251,10 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                     msg_A = "👑 [CARD A: BOSS THẾ GIỚI]\n✅ Đã hoàn thành toàn bộ lượt đánh Boss Thế Giới"
                     self.send_telegram_alert(msg_A, capture_screenshot=True, tab_index=str(tab_index))
 
-                    # Nếu Card B đang ON ➔ Hoãn 5 giây trước khi thực thi tiếp
-                    if self.var_switch_B.get() and not self.stop_requested:
-                        self.after(0, self.log_info, "⏳ Hoãn 5 giây trước khi tự động chuyển sang Card Phụ Bản Đơn / Đội...")
+                    # Nếu còn Card khác đang ON ➔ Hoãn 5 giây trước khi thực thi tiếp
+                    has_next = self.var_switch_B.get() or (hasattr(self, 'var_switch_C') and self.var_switch_C.get()) or (hasattr(self, 'var_switch_D') and self.var_switch_D.get())
+                    if has_next and not self.stop_requested:
+                        self.after(0, self.log_info, "⏳ Hoãn 5 giây trước khi tự động chuyển sang hoạt động tiếp theo...")
                         if self._sleep_with_stop_check(5.0):
                             break
 
@@ -5073,15 +5274,62 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                     msg_B = "🎯 [CARD B: PHỤ BẢN ĐƠN / ĐỘI]\n✅ Đã hoàn thành toàn bộ các mốc Phụ Bản"
                     self.send_telegram_alert(msg_B, capture_screenshot=True, tab_index=str(tab_index))
 
-                    # Nếu trong quá trình chạy B người dùng gạt lại A ➔ Hoãn 5 giây rồi lặp lại
-                    if self.var_switch_A.get() and not self.stop_requested:
-                        self.after(0, self.log_info, "⏳ Hoãn 5 giây trước khi tự động chuyển sang Card Boss Thế Giới...")
+                    has_next = (hasattr(self, 'var_switch_C') and self.var_switch_C.get()) or (hasattr(self, 'var_switch_D') and self.var_switch_D.get()) or self.var_switch_A.get()
+                    if has_next and not self.stop_requested:
+                        self.after(0, self.log_info, "⏳ Hoãn 5 giây trước khi tự động chuyển sang hoạt động tiếp theo...")
                         if self._sleep_with_stop_check(5.0):
                             break
 
-                # Kiểm tra an toàn nguyên tử: Nếu cả 2 card đều đã tắt hoặc không còn card nào ON ➔ Kết thúc điều phối
+                # 📌 3. Thực thi Card C (Dị Giới Đêm) nếu công tắc C đang ON
+                if hasattr(self, 'var_switch_C') and self.var_switch_C.get() and not self.stop_requested:
+                    self.after(0, self.log_info, f"📌 [CARD DỊ GIỚI] Bắt đầu thực thi trên Tab: {tab_name} (Index: {tab_index})...")
+                    try:
+                        self._execute_card_C_di_gioi(dnconsole_path, tab_name, tab_index)
+                    except Exception as e:
+                        self.after(0, self.log_error, f"❌ Lỗi tiến trình Card Dị Giới: {e}")
+
+                    # Đảm bảo công tắc C đã tắt trên cả thread và UI sau khi xong
+                    self.var_switch_C.set(False)
+                    self.after(0, lambda: self.var_switch_C.set(False))
+                    self.after(0, self.save_config)
+                    msg_C = "🌌 [CARD C: DỊ GIỚI ĐÊM]\n✅ Đã hoàn thành toàn bộ chu kỳ Dị Giới Đêm"
+                    self.send_telegram_alert(msg_C, capture_screenshot=True, tab_index=str(tab_index))
+
+                    has_next = (hasattr(self, 'var_switch_D') and self.var_switch_D.get()) or self.var_switch_A.get() or self.var_switch_B.get()
+                    if has_next and not self.stop_requested:
+                        self.after(0, self.log_info, "⏳ Hoãn 5 giây trước khi tự động chuyển sang hoạt động tiếp theo...")
+                        if self._sleep_with_stop_check(5.0):
+                            break
+
+                # 📌 4. Thực thi Card D (40 NPC / Nhị Kiều) nếu công tắc D đang ON
+                if hasattr(self, 'var_switch_D') and self.var_switch_D.get() and not self.stop_requested:
+                    self.after(0, self.log_info, f"📌 [CARD 40 NPC / NHỊ KIỀU] Bắt đầu thực thi trên Tab: {tab_name} (Index: {tab_index})...")
+                    try:
+                        self._execute_card_D_40_npc(dnconsole_path, tab_name, tab_index)
+                    except Exception as e:
+                        self.after(0, self.log_error, f"❌ Lỗi tiến trình Card 40 NPC / Nhị Kiều: {e}")
+
+                    # Đảm bảo công tắc D đã tắt trên cả thread và UI sau khi xong
+                    self.var_switch_D.set(False)
+                    if hasattr(self, 'var_pause_D'):
+                        self.var_pause_D.set(False)
+                    self.after(0, lambda: self.var_switch_D.set(False))
+                    self.after(0, self.save_config)
+                    msg_D = "🏛️ [CARD D: 40 NPC / NHỊ KIỀU]\n✅ Đã hoàn thành hoạt động 40 NPC / Nhị Kiều"
+                    self.send_telegram_alert(msg_D, capture_screenshot=True, tab_index=str(tab_index))
+
+                    has_next = self.var_switch_A.get() or self.var_switch_B.get() or (hasattr(self, 'var_switch_C') and self.var_switch_C.get())
+                    if has_next and not self.stop_requested:
+                        self.after(0, self.log_info, "⏳ Hoãn 5 giây trước khi tự động chuyển sang hoạt động tiếp theo...")
+                        if self._sleep_with_stop_check(5.0):
+                            break
+
+                # Kiểm tra an toàn nguyên tử: Nếu tất cả các card đều đã tắt hoặc không còn card nào ON ➔ Kết thúc điều phối
                 with self._card_AB_lock:
-                    if not self.var_switch_A.get() and not self.var_switch_B.get():
+                    any_active = (self.var_switch_A.get() or self.var_switch_B.get()
+                                  or (hasattr(self, 'var_switch_C') and self.var_switch_C.get())
+                                  or (hasattr(self, 'var_switch_D') and self.var_switch_D.get()))
+                    if not any_active:
                         self._card_AB_coordinator_running = False
                         break
 
@@ -5091,7 +5339,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                 self.after(0, self.log_info, "🎉 [HOÀN TẤT] Đã thực thi xong toàn bộ hoạt động của các Card đã chọn!")
 
         except Exception as e:
-            self.after(0, self.log_error, f"❌ Lỗi hệ thống điều phối Card A & B: {str(e)}")
+            self.after(0, self.log_error, f"❌ Lỗi hệ thống điều phối Card: {str(e)}")
         finally:
             with self._card_AB_lock:
                 self._card_AB_coordinator_running = False
@@ -5099,9 +5347,11 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
     def xu_ly_nut_chay(self):
         """Hàm tương thích ngược: Tự động kích hoạt luồng điều phối cho các Card đang bật ON"""
         self._reset_stop_flags()
-        has_active_switch = self.var_switch_A.get() or self.var_switch_B.get()
+        has_active_switch = (self.var_switch_A.get() or self.var_switch_B.get()
+                             or (hasattr(self, 'var_switch_C') and self.var_switch_C.get())
+                             or (hasattr(self, 'var_switch_D') and self.var_switch_D.get()))
         if not has_active_switch:
-            self.log_info("Vui lòng bật công tắc ON cho Card Boss Thế Giới hoặc Card Phụ Bản Đơn/Đội để thực thi!")
+            self.log_info("Vui lòng bật công tắc ON cho ít nhất một Card (A, B, C, D) để thực thi!")
             return
         self._trigger_card_AB_workflow("Tổng Hợp")
 
@@ -5149,6 +5399,10 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             self.var_truy_kich.set(False)
         if hasattr(self, 'var_E_moi_doi'):
             self.var_E_moi_doi.set(False)
+        if hasattr(self, 'var_hen_gio'):
+            self.var_hen_gio.set(False)
+        if hasattr(self, '_event_hen_gio'):
+            self._event_hen_gio.clear()
         # Giữ nguyên combo_E_vai_tro và combo_E_quan_su để 40 NPC / Nhị Kiều tiếp tục sử dụng mà không mất cấu hình
         if hasattr(self, '_event_wake_card_E'):
             self._event_wake_card_E.set()
@@ -6869,11 +7123,14 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
 
                 # ---------------- GIAI ĐOẠN 1: CANH AN TOÀN LẦN 1 & MỜI ĐỘI (CHỈ CHẠY KHI TÍCH MỜI ĐỘI) ----------------
                 if is_moi_doi:
+                    self._is_card_E_scanning = True
                     if not self._wait_for_safe_map_time(dnconsole_path, tab_index):
+                        self._is_card_E_scanning = False
                         if self.stop_requested: break
                         continue
 
                     if not self._open_team_dialog_standard(dnconsole_path, tab_index):
+                        self._is_card_E_scanning = False
                         self.after(0, self.log_info, "⚠️ [Tổ Đội] Chưa mở được bảng Đội (không thấy 'card_b/b_doi.png') ➔ Thử lại sau 1s...")
                         if self.stop_requested: break
                         if self._sleep_card_E(1.0): break
@@ -6888,6 +7145,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                         self.after(0, self.log_info, f"✅ [Tổ Đội - Bước 1.3] Mắt thần xác nhận trên màn hình thực tế: Đội đã ĐỦ quân số ({len(present_members)}/{target_count})!")
                         self.after(0, self.log_info, "👉 [Tổ Đội] Đóng bảng Đội & thu gọn menu an toàn...")
                         self._close_team_dialog_standard(dnconsole_path, tab_index)
+                        self._is_card_E_scanning = False
                         self.after(0, self.log_info, "🚀 [Tổ Đội] Chuyển sang Giai đoạn Tuần Tra định kỳ (mỗi 5 phút)...")
                         if self._sleep_card_E(300.0):
                             break
@@ -7055,10 +7313,12 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                         else:
                             self.after(0, self.log_info, "⚠️ [Tổ Đội] Danh Sách B đang TRỐNG! Bạn cần thêm nhân vật từ Danh Sách A sang Danh Sách B để mời.")
                             self._close_team_dialog_standard(dnconsole_path, tab_index)
+                            self._is_card_E_scanning = False
                             if self._sleep_card_E(2.0): break
                             continue
 
                     self._close_team_dialog_standard(dnconsole_path, tab_index)
+                    self._is_card_E_scanning = False
 
                     if need_cooldown_60s:
                         self.after(0, self.log_info, "⏳ [Tổ Đội] Tạm nghỉ 60s trước khi kiểm tra/mời đợt tiếp theo...")
@@ -7070,6 +7330,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
         except Exception as e:
             self.after(0, self.log_error, f"Lỗi luồng Tổ Đội Độc Lập: {e}")
         finally:
+            self._is_card_E_scanning = False
             self._thread_card_E_standalone = None
 
     # =========================================================================
@@ -9110,19 +9371,38 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
         return 1280, 720
 
     # =========================================================================
-    # 📬 TỰ ĐỘNG NHẬN THƯ (10H01 TỐI) - LUỒNG CHẠY SUỐT ĐỘC LẬP
+    # 📬 TỰ ĐỘNG NHẬN THƯ (CARD HOẠT ĐỘNG NGÀY)
     # =========================================================================
-    def _execute_nhan_thu(self, dnconsole_path: str, tab_index: str):
+    def _on_nhan_thu_toggled(self):
+        """Xử lý khi người dùng bật / tắt ô tích Nhận Thư"""
+        is_enabled = bool(self.var_nhan_thu.get()) if hasattr(self, 'var_nhan_thu') else False
+        mốc = self.combo_nhan_thu_time.get() if hasattr(self, 'combo_nhan_thu_time') else "Tất Cả"
+        if is_enabled:
+            if hasattr(self, '_event_nhan_thu'):
+                self._event_nhan_thu.set()
+            self.after(0, self.log_info, f"📬 [HOẠT ĐỘNG NGÀY] Đã bật Tự Động Nhận Thư (Mốc: {mốc}) - Hệ thống sẽ tự động thực hiện khi đến giờ.")
+        else:
+            if hasattr(self, '_event_nhan_thu'):
+                self._event_nhan_thu.clear()
+            self.after(0, self.log_info, "📬 [HOẠT ĐỘNG NGÀY] Đã tắt Tự Động Nhận Thư.")
+        self.save_config()
+
+    def _execute_nhan_thu(self, dnconsole_path: str, tab_index: str, time_slot: str = "Tự Động") -> bool:
         """QUY TRÌNH NHẬN THƯ (BƯỚC 0 ➔ BƯỚC 1 ➔ BƯỚC 2)"""
         if getattr(self, '_is_nhan_thu_running', False):
             self.after(0, self.log_info, "ℹ️ [Tự Động Nhận Thư] Tiến trình Nhận Thư đang chạy, vui lòng chờ...")
-            return
+            return False
 
         self._is_nhan_thu_running = True
+        self._reset_stop_flags()
         try:
-            self.after(0, self.log_info, "📬 [Tự Động Nhận Thư] Bắt đầu thực thi quy trình Nhận Thư...")
+            self.after(0, self.log_info, f"📬 [Tự Động Nhận Thư ({time_slot})] Bắt đầu thực thi quy trình Nhận Thư...")
 
             # Bước 0: Quét đóng quảng cáo / popup
+            if self.stop_requested:
+                self.after(0, self.log_info, "🛑 [Tự Động Nhận Thư] Đã nhận lệnh Dừng, hủy thao tác Nhận Thư.")
+                return False
+
             self.after(0, self.log_info, "👁️ [Nhận Thư - Bước 0] Quét tìm 'card_top/login/login_x.png' (75%, ROI 990,50,1165,200)...")
             lx_x, lx_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_top/login/login_x.png", threshold=0.75, region=(990, 50, 1165, 200))
             if lx_x is not None and lx_y is not None:
@@ -9131,6 +9411,10 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                 time.sleep(0.4)
 
             # Bước 1: Mở menu và bấm nút Thư
+            if self.stop_requested:
+                self.after(0, self.log_info, "🛑 [Tự Động Nhận Thư] Đã nhận lệnh Dừng, hủy thao tác Nhận Thư.")
+                return False
+
             self.after(0, self.log_info, "👁️ [Nhận Thư - Bước 1] Quét tìm nút Thư 'card_top/login/login_thu.png' (80%, ROI 735,405,1280,720)...")
             v_x, v_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_top/login/login_thu.png", threshold=0.80, region=(735, 405, 1280, 720))
             if v_x is not None and v_y is not None:
@@ -9148,9 +9432,13 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                     time.sleep(0.4)
                 else:
                     self.after(0, self.log_info, "⚠️ Chưa quét thấy biểu tượng nút Thư 'login_thu.png' sau khi mở menu ➔ Dừng nhận thư.")
-                    return
+                    return False
 
             # Bước 2: Bấm chọn Nhận Thư
+            if self.stop_requested:
+                self.after(0, self.log_info, "🛑 [Tự Động Nhận Thư] Đã nhận lệnh Dừng, hủy thao tác Nhận Thư.")
+                return False
+
             self.after(0, self.log_info, "👉 [Nhận Thư - Bước 2] Tap tọa độ (365, 575) ➔ Hoãn 0.4s...")
             self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 365 575"])
             time.sleep(0.4)
@@ -9170,46 +9458,237 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1213 648"])
             time.sleep(0.4)
 
-            self.after(0, self.log_info, "✅ [Tự Động Nhận Thư] Đã hoàn thành toàn bộ thao tác Nhận Thư!")
-            self.send_telegram_alert(
-                "📬 [TỰ ĐỘNG NHẬN THƯ (22h01)]\n✅ Đã Nhận Thư",
-                capture_screenshot=True,
-                tab_index=str(tab_index)
-            )
+            self.after(0, self.log_info, f"✅ [Tự Động Nhận Thư ({time_slot})] Đã hoàn thành toàn bộ thao tác Nhận Thư!")
+            return True
+        except Exception as e:
+            self.after(0, self.log_error, f"❌ Lỗi tiến trình Nhận Thư: {e}")
+            return False
         finally:
             self._is_nhan_thu_running = False
 
-    def _worker_auto_mail_daemon(self):
-        """Luồng ngầm chạy suốt độc lập: Tự động kích hoạt sau 60 giây kể từ khi mở tool, canh đúng 10H01 Tối (22:01) mỗi ngày để nhận thư (không bị nút Stop dừng)"""
-        time.sleep(60.0)
-        self.after(0, self.log_info, "📬 [TỰ ĐỘNG NHẬN THƯ] Luồng ngầm đã khởi động sau 60s! Chế độ chạy suốt: Tự động kích hoạt lúc 10H01 Tối (22:01) mỗi ngày...")
+    def _is_tool_busy_with_activities(self) -> tuple[bool, str]:
+        """Kiểm tra xem tool có đang bận thực thi các hoạt động chính (Boss, Phụ Bản, Dị Giới, 40 NPC / Nhị Kiều...) không"""
+        if getattr(self, '_is_hen_gio_running', False):
+            return True, "Tiến trình Hẹn Giờ"
 
-        last_run_date = None
+        # Nếu đang bật Hẹn Giờ và chưa đến giờ kích hoạt, các Card đang ON chỉ ở trạng thái chờ lịch, không chiếm quyền LDPlayer
+        is_hen_gio_waiting = hasattr(self, 'var_hen_gio') and self.var_hen_gio.get() and not getattr(self, '_is_hen_gio_running', False)
+
+        if not is_hen_gio_waiting:
+            if getattr(self, '_card_AB_coordinator_running', False):
+                return True, "Điều phối Boss TG / Phụ Bản"
+            if hasattr(self, 'var_switch_A') and self.var_switch_A.get():
+                return True, "Card Boss Thế Giới (A)"
+            if hasattr(self, 'var_switch_B') and self.var_switch_B.get():
+                return True, "Card Phụ Bản Đơn / Đội (B)"
+            if hasattr(self, 'var_switch_C') and self.var_switch_C.get():
+                return True, "Card Dị Giới (C)"
+            if hasattr(self, 'var_switch_D') and self.var_switch_D.get():
+                return True, "Card 40 NPC / Nhị Kiều (D)"
+
+        if hasattr(self, 'btn_enter_game'):
+            try:
+                if self.btn_enter_game.cget("text") == "Đang mở Game...":
+                    return True, "Đang mở Game TS Origin"
+            except Exception:
+                pass
+        if getattr(self, '_is_card_E_scanning', False):
+            return True, "Quản Lý Tổ Đội (Đang quét/mời)"
+        return False, ""
+
+    def _worker_auto_mail_daemon(self):
+        """Luồng ngầm canh giờ Nhận Thư: Tĩnh hoàn toàn khi tắt, kích hoạt qua _event_nhan_thu khi ô Nhận Thư được tích, có cơ chế Kiểm tra Bận (Busy Check) chống xung đột"""
+        if not hasattr(self, '_completed_mail_slots'):
+            self._completed_mail_slots = set()
+        last_logged_busy_slot = None
+        retry_counts = {}
+
         while True:
             try:
+                # 1. Nếu ô Nhận Thư không được tích (False), luồng ngưng hoạt động tĩnh hoàn toàn (Zero CPU)
+                if hasattr(self, '_event_nhan_thu'):
+                    self._event_nhan_thu.wait()
+
+                # Kiểm tra lại biến ô tích phòng trường hợp event vừa bị clear
+                if not getattr(self, 'var_nhan_thu', None) or not self.var_nhan_thu.get():
+                    if hasattr(self, '_event_nhan_thu'):
+                        self._event_nhan_thu.clear()
+                    continue
+
                 now = datetime.now()
-                # Kích hoạt đúng lúc 10H01 Tối (22:01)
-                if now.hour == 22 and now.minute == 1:
-                    today_str = now.strftime("%Y-%m-%d")
-                    if last_run_date != today_str:
-                        last_run_date = today_str
-                        self.after(0, self.log_info, "⏰ [10H01 TỐI] Đã đến 22:01 ➔ Bắt đầu tự động thực thi Nhận Thư...")
+                today_str = now.strftime("%Y-%m-%d")
+                selected_mode = self.combo_nhan_thu_time.get() if hasattr(self, 'combo_nhan_thu_time') else "Tất Cả"
 
-                        dnconsole_path = self._get_dnconsole_path()
-                        if not dnconsole_path:
-                            self.after(0, self.log_error, f"⚠️ Không tìm thấy ldconsole/dnconsole tại: {self.ld_path}")
-                            time.sleep(5.0)
-                            continue
+                # 2. Xác định các mốc giờ 12H01, 18H01, 22H01 (khung giờ từ phút 01 đến phút 30)
+                matched_slot = None
+                if 1 <= now.minute <= 30:
+                    if now.hour == 12 and (selected_mode in ["12H01", "Tất Cả"]):
+                        matched_slot = "12H01"
+                    elif now.hour == 18 and (selected_mode in ["18H01", "Tất Cả"]):
+                        matched_slot = "18H01"
+                    elif now.hour == 22 and (selected_mode in ["22H01", "Tất Cả"]):
+                        matched_slot = "22H01"
 
-                        tab_name, tab_index = self._get_selected_ld_info()
-                        if tab_index is None:
-                            tab_index = "0"
+                if matched_slot is not None:
+                    slot_key = f"{today_str}_{matched_slot}"
+                    if slot_key not in self._completed_mail_slots:
+                        # 3. CƠ CHẾ KIỂM TRA TRẠNG THÁI BẬN (BUSY CHECK)
+                        is_busy, busy_reason = self._is_tool_busy_with_activities()
+                        if is_busy:
+                            if last_logged_busy_slot != slot_key:
+                                last_logged_busy_slot = slot_key
+                                self.after(0, self.log_info, f"⏳ [Tự Động Nhận Thư ({matched_slot})] Hoạt động '{busy_reason}' đang chạy dở ➔ Tạm hoãn nhận thư, sẽ tự động thực thi ngay khi hoàn thành...")
+                        else:
+                            last_logged_busy_slot = None
+                            self.after(0, self.log_info, f"⏰ [{matched_slot}] Bắt đầu thực thi Tự Động Nhận Thư ({matched_slot})...")
 
-                        self._execute_nhan_thu(dnconsole_path, str(tab_index))
+                            dnconsole_path = self._get_dnconsole_path()
+                            if not dnconsole_path:
+                                self.after(0, self.log_error, f"⚠️ Không tìm thấy ldconsole/dnconsole tại: {self.ld_path}")
+                            else:
+                                tab_name, tab_index = self._get_selected_ld_info()
+                                if tab_index is None:
+                                    tab_index = "0"
+                                success = self._execute_nhan_thu(dnconsole_path, str(tab_index), time_slot=matched_slot)
+                                if success:
+                                    self._completed_mail_slots.add(slot_key)
+                                    retry_counts.pop(slot_key, None)
+                                    self.after(0, self.log_info, f"✅ [Tự Động Nhận Thư ({matched_slot})] Đã hoàn tất mốc {matched_slot} hôm nay.")
+                                else:
+                                    cur_retries = retry_counts.get(slot_key, 0) + 1
+                                    retry_counts[slot_key] = cur_retries
+                                    if cur_retries >= 3:
+                                        self.after(0, self.log_warning, f"⚠️ [Tự Động Nhận Thư ({matched_slot})] Đã thử lại 3 lần không thành công ➔ Đánh dấu kết thúc mốc này để tránh lặp vô tận.")
+                                        self._completed_mail_slots.add(slot_key)
+                                    else:
+                                        self.after(0, self.log_info, f"🔄 [Tự Động Nhận Thư ({matched_slot})] Chưa hoàn thành (lần {cur_retries}/3) ➔ Sẽ tự động thử lại sau vài giây...")
+
+                # Dọn dẹp các mốc cũ của ngày hôm trước trong set để chống phình bộ nhớ
+                if len(self._completed_mail_slots) > 20:
+                    self._completed_mail_slots = {s for s in self._completed_mail_slots if s.startswith(today_str)}
+
+                # Chờ 5 giây hoặc thức dậy ngay lập tức nếu event thay đổi
+                if hasattr(self, '_event_nhan_thu'):
+                    self._event_nhan_thu.wait(timeout=5.0)
+                else:
+                    time.sleep(5.0)
+
             except Exception as e:
                 self.after(0, self.log_error, f"⚠️ Lỗi luồng tự động nhận thư: {e}")
+                time.sleep(5.0)
 
-            time.sleep(5.0)
+    def _worker_hen_gio_daemon(self):
+        """Luồng ngầm canh giờ Hẹn Giờ: Tĩnh hoàn toàn khi tắt, kích hoạt qua _event_hen_gio khi ô Hẹn Giờ được tích"""
+        last_triggered_key = None
+        while True:
+            try:
+                # 1. Nếu ô Hẹn Giờ không được tích, luồng ngưng hoạt động tĩnh hoàn toàn (Zero CPU)
+                if hasattr(self, '_event_hen_gio'):
+                    self._event_hen_gio.wait()
+
+                # Kiểm tra lại biến ô tích phòng trường hợp event vừa bị clear
+                if not getattr(self, 'var_hen_gio', None) or not self.var_hen_gio.get():
+                    if hasattr(self, '_event_hen_gio'):
+                        self._event_hen_gio.clear()
+                    continue
+
+                now = datetime.now()
+                now_str = now.strftime("%H:%M")
+                target_time = self.var_hen_gio_time.get().strip() if hasattr(self, 'var_hen_gio_time') else "05:00"
+
+                # Chuẩn hóa target_time (đảm bảo dạng HH:MM)
+                if len(target_time) == 4 and target_time[1] == ':':
+                    target_time = f"0{target_time}"
+
+                today_str = now.strftime("%Y-%m-%d")
+                trigger_key = f"{today_str}_{target_time}"
+
+                if now_str == target_time and last_triggered_key != trigger_key:
+                    last_triggered_key = trigger_key
+
+                    # Kiểm tra xem có Card nào (A, B, C, D) đang gạt công tắc ON không
+                    has_A = hasattr(self, 'var_switch_A') and self.var_switch_A.get()
+                    has_B = hasattr(self, 'var_switch_B') and self.var_switch_B.get()
+                    has_C = hasattr(self, 'var_switch_C') and self.var_switch_C.get()
+                    has_D = hasattr(self, 'var_switch_D') and self.var_switch_D.get()
+
+                    if not (has_A or has_B or has_C or has_D):
+                        self.after(0, self.log_warning, f"⚠️ [HẸN GIỜ] Đã đến giờ hẹn {target_time} nhưng không có Card nào (A, B, C, D) được gạt công tắc ON! Tự động tắt Hẹn Giờ.")
+                        self.var_hen_gio.set(False)
+                        if hasattr(self, '_event_hen_gio'):
+                            self._event_hen_gio.clear()
+                        self.after(0, self.save_config)
+                        continue
+
+                    self.after(0, self.log_info, f"⏰ [HẸN GIỜ] ĐÃ ĐẾN GIỜ HẸN ({target_time})! Bắt đầu thực thi tuần tự các Card đã bật ON...")
+                    self._reset_stop_flags()
+                    self._is_hen_gio_running = True
+
+                    try:
+                        tab_name, tab_index = self._get_selected_ld_info()
+                        dnconsole_path = self._get_dnconsole_path()
+
+                        if tab_index is None or not dnconsole_path:
+                            self.after(0, self.log_error, "⚠️ [HẸN GIỜ] Không tìm thấy thông tin Tab LDPlayer hoặc đường dẫn ldconsole hợp lệ để chạy hẹn giờ!")
+                        else:
+                            # Chờ nếu đang có hoạt động nhận thư chạy dở (thường chỉ mất 5-10 giây)
+                            mail_wait = 0
+                            while getattr(self, '_is_nhan_thu_running', False) and mail_wait < 15 and not self.stop_requested:
+                                time.sleep(1.0)
+                                mail_wait += 1
+
+                            # 1. Chạy Card A & Card B qua Coordinator tuần tự
+                            if (has_A or has_B) and not self.stop_requested:
+                                self.after(0, self.log_info, "🚀 [HẸN GIỜ ➔ BƯỚC 1] Khởi chạy Card A (Boss TG) & Card B (Phụ Bản)...")
+                                self._run_card_AB_coordinator()
+
+                            # 2. Chạy Card C (Dị Giới)
+                            if hasattr(self, 'var_switch_C') and self.var_switch_C.get() and not self.stop_requested:
+                                self.after(0, self.log_info, "🚀 [HẸN GIỜ ➔ BƯỚC 2] Khởi chạy Card C (Dị Giới Đêm)...")
+                                try:
+                                    self._execute_card_C_di_gioi(dnconsole_path, tab_name, tab_index)
+                                except Exception as e:
+                                    self.after(0, self.log_error, f"❌ [HẸN GIỜ] Lỗi Card Dị Giới: {e}")
+                                finally:
+                                    self.var_switch_C.set(False)
+                                    self.after(0, lambda: self.var_switch_C.set(False))
+
+                            # 3. Chạy Card D (40 NPC / Nhị Kiều)
+                            if hasattr(self, 'var_switch_D') and self.var_switch_D.get() and not self.stop_requested:
+                                self.after(0, self.log_info, "🚀 [HẸN GIỜ ➔ BƯỚC 3] Khởi chạy Card D (40 NPC / Nhị Kiều)...")
+                                try:
+                                    self._execute_card_D_40_npc(dnconsole_path, tab_name, tab_index)
+                                except Exception as e:
+                                    self.after(0, self.log_error, f"❌ [HẸN GIỜ] Lỗi Card 40 NPC: {e}")
+                                finally:
+                                    self.var_switch_D.set(False)
+                                    if hasattr(self, 'var_pause_D'):
+                                        self.var_pause_D.set(False)
+                                    self.after(0, lambda: self.var_switch_D.set(False))
+                    finally:
+                        self._is_hen_gio_running = False
+
+                    # 4. Hoàn tất toàn bộ quy trình hẹn giờ: Nhả công tắc về OFF & Tắt Hẹn Giờ
+                    for prefix in ["A", "B", "C", "D"]:
+                        switch_attr = f"var_switch_{prefix}"
+                        if hasattr(self, switch_attr):
+                            getattr(self, switch_attr).set(False)
+                    self.var_hen_gio.set(False)
+                    if hasattr(self, '_event_hen_gio'):
+                        self._event_hen_gio.clear()
+                    self._update_card_E_visibility()
+                    self.after(0, self.save_config)
+                    self.after(0, self.log_info, f"🎉 [HẸN GIỜ] Đã hoàn thành toàn bộ hoạt động theo lịch hẹn ({target_time})! Đã tự động trả tất cả công tắc về OFF.")
+
+                # Chờ 2 giây hoặc thức dậy ngay lập tức nếu event thay đổi
+                if hasattr(self, '_event_hen_gio'):
+                    self._event_hen_gio.wait(timeout=2.0)
+                else:
+                    time.sleep(2.0)
+
+            except Exception as e:
+                self.after(0, self.log_error, f"⚠️ Lỗi luồng hẹn giờ: {e}")
+                time.sleep(2.0)
 
     def _capture_screen_fast(self, dnconsole_path: str, tab_index: str, max_cache_age: float = 0.35):
         """📸 Chụp ảnh màn hình LDPlayer siêu tốc: Tận dụng bộ nhớ đệm RAM (0.35s) và đọc In-Memory qua ADB Direct Stream (Zero Disk I/O)"""

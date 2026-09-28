@@ -573,45 +573,6 @@ HTML_PAGE = """<!DOCTYPE html>
             transform: scale(0.95);
         }
 
-        .btn-tool-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 25px;
-            height: 25px;
-            min-width: 25px;
-            min-height: 25px;
-            border: none;
-            border-radius: 5px;
-            font-size: 0.8rem;
-            line-height: 1;
-            cursor: pointer;
-            color: #FFFFFF;
-            padding: 0;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
-            transition: background 0.15s ease, transform 0.1s ease;
-        }
-        .btn-tool-icon:hover {
-            filter: brightness(1.15);
-        }
-        .btn-tool-icon:active {
-            transform: scale(0.92);
-        }
-        .btn-tool-icon.btn-capture {
-            background: #2563EB;
-        }
-        .btn-tool-icon.btn-capture:hover {
-            background: #1D4ED8;
-        }
-        .btn-tool-icon.btn-delete {
-            background: #EF4444;
-            font-family: 'Segoe UI', Arial, sans-serif;
-            font-weight: 700;
-            font-size: 0.8rem;
-        }
-        .btn-tool-icon.btn-delete:hover {
-            background: #DC2626;
-        }
 
         /* Đồng bộ kích thước cố định đều nhau cho 2 hàng Card F Chiến Đấu */
         .combat-col-left {
@@ -1413,6 +1374,24 @@ HTML_PAGE = """<!DOCTYPE html>
                     </label>
                 </div>
             </div>
+
+            <!-- Card Hẹn Giờ Hoạt Động (A, B, C, D) -->
+            <div class="card" style="margin-top:12px;">
+                <div class="card-header">
+                    <span class="card-title">⏰ Hẹn Giờ Hoạt Động (A, B, C, D)</span>
+                </div>
+                <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.02); padding:8px 12px; border-radius:8px; border:1px solid var(--border);">
+                    <label class="chk-label" style="font-size:0.82rem; font-weight:600; display:flex; align-items:center; gap:6px;">
+                        <input type="checkbox" id="chk_hen_gio" onchange="onCheckboxChanged('hen_gio', this.checked)"> ⏰ Hẹn Giờ
+                    </label>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <input type="text" id="entry_hen_gio_time" value="05:00" placeholder="05:00" maxlength="5" class="combat-select-right" style="width:75px; text-align:center; font-weight:700; color:#fff; background:#1e293b; border:1px solid #475569;" onchange="onTextChanged('hen_gio_time', this.value)" onkeyup="if(event.key==='Enter') this.blur()">
+                    </div>
+                </div>
+                <div style="font-size:0.72rem; color:var(--text-muted); margin-top:6px; padding:0 4px; line-height:1.4;">
+                    💡 Khi tích Hẹn Giờ, các Card (A, B, C, D) gạt ON sẽ chờ đến đúng mốc giờ mới chạy tuần tự. Chạy xong tự động nhả về OFF.
+                </div>
+            </div>
         </div>
 
         <!-- TAB 2: ⚙️ HOẠT ĐỘNG -->
@@ -1645,7 +1624,28 @@ HTML_PAGE = """<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- TAB 4: ⚔️ CHIẾN ĐẤU -->
+        <!-- TAB 4: 📅 HOẠT ĐỘNG NGÀY -->
+        <div class="tab-pane" id="tabPane_daily">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">📅 Hoạt Động Ngày</span>
+                </div>
+                <!-- Hàng 1: [ ] Nhận Thư | [ Menu Mốc Giờ ] -->
+                <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.02); padding:8px 10px; border-radius:8px; border:1px solid var(--border);">
+                    <label class="chk-label" style="font-size:0.8rem; font-weight:600;">
+                        <input type="checkbox" id="chk_nhan_thu" onchange="onCheckboxChanged('nhan_thu', this.checked)"> 📬 Nhận Thư
+                    </label>
+                    <select id="combo_nhan_thu_time" class="combat-select-right" style="width:114px; min-width:100px; max-width:114px;" onchange="onComboChanged('nhan_thu_time', this.value)">
+                        <option value="Tất Cả" selected>Tất Cả</option>
+                        <option value="12H01">12H01</option>
+                        <option value="18H01">18H01</option>
+                        <option value="22H01">22H01</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: ⚔️ CHIẾN ĐẤU -->
         <div class="tab-pane" id="tabPane_combat">
             <div class="card">
                 <div class="card-header">
@@ -1689,7 +1689,7 @@ HTML_PAGE = """<!DOCTYPE html>
             </div>
         </div>
 
-        <!-- TAB 4: 📜 NHẬT KÝ HOẠT ĐỘNG -->
+        <!-- TAB 6: 📜 NHẬT KÝ HOẠT ĐỘNG -->
         <div class="tab-pane" id="tabPane_logs">
             <div class="card">
                 <div class="card-header" style="flex-wrap: wrap; gap: 6px;">
@@ -1735,6 +1735,10 @@ HTML_PAGE = """<!DOCTYPE html>
                 <button class="tab-button" onclick="switchTab('team', this)">
                     <span class="tab-icon">🏆</span>
                     <span>Sự Kiện</span>
+                </button>
+                <button class="tab-button" onclick="switchTab('daily', this)">
+                    <span class="tab-icon">📅</span>
+                    <span>Ngày</span>
                 </button>
                 <button class="tab-button" onclick="switchTab('combat', this)">
                     <span class="tab-icon">⚔️</span>
@@ -1878,17 +1882,26 @@ HTML_PAGE = """<!DOCTYPE html>
             }
 
             const selectTab = document.getElementById('selectTab');
-            if (data.tabs && data.tabs.length > 0) {
-                selectTab.innerHTML = '';
-                data.tabs.forEach(t => {
-                    const opt = document.createElement('option');
-                    opt.value = t;
-                    opt.innerText = t;
-                    if (t === data.selected_tab) opt.selected = true;
-                    selectTab.appendChild(opt);
-                });
-            } else {
-                selectTab.innerHTML = '<option value="">(Chưa phát hiện Tab LD nào mở)</option>';
+            const newTabs = data.tabs || [];
+            if (selectTab) {
+                const curTabValues = Array.from(selectTab.options).map(o => o.value);
+                const isTabListDiff = newTabs.length !== curTabValues.length || newTabs.some((t, i) => t !== curTabValues[i]);
+                if (isTabListDiff) {
+                    if (newTabs.length > 0) {
+                        selectTab.innerHTML = '';
+                        newTabs.forEach(t => {
+                            const opt = document.createElement('option');
+                            opt.value = t;
+                            opt.innerText = t;
+                            if (t === data.selected_tab) opt.selected = true;
+                            selectTab.appendChild(opt);
+                        });
+                    } else {
+                        selectTab.innerHTML = '<option value="">(Chưa phát hiện Tab LD nào mở)</option>';
+                    }
+                } else if (data.selected_tab && document.activeElement !== selectTab) {
+                    selectTab.value = data.selected_tab;
+                }
             }
 
             const fsTabTitle = document.getElementById('fsTabTitle');
@@ -1901,15 +1914,28 @@ HTML_PAGE = """<!DOCTYPE html>
 
             const carousel = document.getElementById('ldCarousel');
             if (carousel) {
-                if (data.tabs && data.tabs.length > 0) {
-                    carousel.innerHTML = data.tabs.map(t => {
-                        const isActive = (t === data.selected_tab);
-                        return `<div class="ld-pill ${isActive ? 'active' : ''}" onclick="onTabChanged('${t}')">
-                            <span>📱</span><span>${t}</span>
-                        </div>`;
-                    }).join('');
+                const curTabPills = Array.from(carousel.querySelectorAll('.ld-pill span:last-child')).map(s => s.innerText);
+                const isCarouselDiff = newTabs.length !== curTabPills.length || newTabs.some((t, i) => t !== curTabPills[i]);
+                if (isCarouselDiff) {
+                    if (newTabs.length > 0) {
+                        carousel.innerHTML = newTabs.map(t => {
+                            const isActive = (t === data.selected_tab);
+                            return `<div class="ld-pill ${isActive ? 'active' : ''}" onclick="onTabChanged('${t}')">
+                                <span>📱</span><span>${t}</span>
+                            </div>`;
+                        }).join('');
+                    } else {
+                        carousel.innerHTML = '<div class="ld-pill"><span>⚠️</span><span>Chưa kết nối Tab LD</span></div>';
+                    }
                 } else {
-                    carousel.innerHTML = '<div class="ld-pill"><span>⚠️</span><span>Chưa kết nối Tab LD</span></div>';
+                    carousel.querySelectorAll('.ld-pill').forEach((pill, idx) => {
+                        const t = newTabs[idx];
+                        if (t === data.selected_tab) {
+                            pill.classList.add('active');
+                        } else {
+                            pill.classList.remove('active');
+                        }
+                    });
                 }
             }
 
@@ -2155,9 +2181,6 @@ HTML_PAGE = """<!DOCTYPE html>
                 const chkPhongThu = document.getElementById('chk_phong_thu');
                 if (chkPhongThu) chkPhongThu.checked = false;
                 delete userLocks['chk_phong_thu'];
-                const chkTruyKich = document.getElementById('chk_truy_kich');
-                if (chkTruyKich) chkTruyKich.checked = false;
-                delete userLocks['chk_truy_kich'];
                 const chkEMoiDoi = document.getElementById('chk_E_moi_doi');
                 if (chkEMoiDoi) chkEMoiDoi.checked = false;
                 delete userLocks['chk_E_moi_doi'];
@@ -2205,6 +2228,12 @@ HTML_PAGE = """<!DOCTYPE html>
                     userLocks['chk_' + k] = Date.now() + 2500;
                     const el = document.getElementById('chk_' + k);
                     if (el) el.checked = false;
+                });
+            } else if (name === 'hen_gio' && !value) {
+                ['A', 'B', 'C', 'D'].forEach(k => {
+                    userLocks['switch_' + k] = Date.now() + 2500;
+                    const sw = document.getElementById('switch_' + k);
+                    if (sw) sw.checked = false;
                 });
             }
             sendAction('set_checkbox', {name, value}, false);
@@ -2260,15 +2289,18 @@ HTML_PAGE = """<!DOCTYPE html>
 
         function onTabChanged(tab) {
             sendAction('set_tab', {tab}, true);
+            setTimeout(fetchStatus, 150);
         }
 
         function onServerChanged(server) {
             sendAction('set_server', {server}, true);
+            setTimeout(fetchStatus, 150);
         }
 
         function refreshTabs() {
             sendAction('refresh_tabs', {}, true);
             showToast('Đang quét lại tab...');
+            setTimeout(fetchStatus, 600);
         }
 
         let currentStreamInterval = parseInt(localStorage.getItem('ts_stream_interval') || '500', 10);
@@ -2589,6 +2621,8 @@ class ToolWebRequestHandler(BaseHTTPRequestHandler):
                 "linh_kinh": app.var_phong_thu.get() if hasattr(app, 'var_phong_thu') else False,
                 "bang_tuong": app.var_phong_thu.get() if hasattr(app, 'var_phong_thu') else False,
                 "truy_kich": app.var_truy_kich.get() if hasattr(app, 'var_truy_kich') else False,
+                "nhan_thu": app.var_nhan_thu.get() if hasattr(app, 'var_nhan_thu') else False,
+                "hen_gio": app.var_hen_gio.get() if hasattr(app, 'var_hen_gio') else False,
                 "enable_notify": app.var_enable_notify.get() if hasattr(app, 'var_enable_notify') else True,
                 "enable_telegram": app.var_enable_telegram.get() if hasattr(app, 'var_enable_telegram') else True
             }
@@ -2609,10 +2643,14 @@ class ToolWebRequestHandler(BaseHTTPRequestHandler):
                 "ket_gioi": app.combo_phong_thu_target.get() if hasattr(app, 'combo_phong_thu_target') else "Chart",
                 "linh_kinh": app.combo_phong_thu_target.get() if hasattr(app, 'combo_phong_thu_target') else "Chart",
                 "bang_tuong": app.combo_phong_thu_target.get() if hasattr(app, 'combo_phong_thu_target') else "Chart",
-                "truy_kich_quai": app.combo_truy_kich_quai.get() if hasattr(app, 'combo_truy_kich_quai') else "(Chưa có quái)"
+                "truy_kich_quai": app.combo_truy_kich_quai.get() if hasattr(app, 'combo_truy_kich_quai') else "(Chưa có quái)",
+                "nhan_thu_time": app.combo_nhan_thu_time.get() if hasattr(app, 'combo_nhan_thu_time') else "Tất Cả",
+                "hen_gio_time": app.var_hen_gio_time.get() if hasattr(app, 'var_hen_gio_time') else "05:00"
             }
 
-            inputs = {}
+            inputs = {
+                "hen_gio_time": app.var_hen_gio_time.get() if hasattr(app, 'var_hen_gio_time') else "05:00"
+            }
 
             is_running = bool(
                 getattr(app, '_card_AB_coordinator_running', False)
@@ -2842,6 +2880,16 @@ class ToolWebRequestHandler(BaseHTTPRequestHandler):
                                 app._on_truy_kich_toggled()
                             else:
                                 app._on_checkbox_toggled()
+                        elif cb_name in ["nhan_thu", "var_nhan_thu"]:
+                            if hasattr(app, '_on_nhan_thu_toggled'):
+                                app._on_nhan_thu_toggled()
+                            else:
+                                app.save_config()
+                        elif cb_name in ["hen_gio", "var_hen_gio"]:
+                            if hasattr(app, '_on_hen_gio_toggled'):
+                                app._on_hen_gio_toggled()
+                            else:
+                                app.save_config()
                         elif cb_name in ["enable_telegram", "var_enable_telegram"]:
                             if hasattr(app, 'save_config'):
                                 app.save_config()
@@ -2861,6 +2909,10 @@ class ToolWebRequestHandler(BaseHTTPRequestHandler):
                     combo_widget_name = "combo_phong_thu_target"
                 elif c_name in ["truy_kich_quai", "combo_truy_kich_quai"]:
                     combo_widget_name = "combo_truy_kich_quai"
+                elif c_name in ["nhan_thu_time", "combo_nhan_thu_time"]:
+                    combo_widget_name = "combo_nhan_thu_time"
+                elif c_name in ["hen_gio_time", "combo_hen_gio_time"]:
+                    combo_widget_name = "combo_hen_gio_time"
                 elif c_name.startswith("combo_"):
                     combo_widget_name = c_name
                 else:
@@ -2871,10 +2923,38 @@ class ToolWebRequestHandler(BaseHTTPRequestHandler):
                         getattr(app, combo_widget_name).set(c_val)
                         if c_name in ["E_so_luong", "E_map", "E_quan_su", "combo_E_so_luong", "combo_E_map", "combo_E_quan_su"] and hasattr(app, '_on_card_E_standalone_toggled'):
                             app._on_card_E_standalone_toggled()
+                        elif c_name in ["nhan_thu_time", "combo_nhan_thu_time"]:
+                            if hasattr(app, '_on_nhan_thu_toggled'):
+                                app._on_nhan_thu_toggled()
+                            else:
+                                app.save_config()
+                        elif c_name in ["hen_gio_time", "combo_hen_gio_time"]:
+                            if hasattr(app, 'var_hen_gio_time'):
+                                app.var_hen_gio_time.set(c_val)
+                            if hasattr(app, '_on_hen_gio_time_changed'):
+                                app._on_hen_gio_time_changed()
+                            else:
+                                app.save_config()
                         else:
                             app._on_checkbox_toggled()
                     app.after(0, _set_cmb)
                     msg = f"Đã đổi {c_name} sang {c_val}"
+
+            elif action == "set_text":
+                t_name = req.get("name")
+                t_val = req.get("value")
+                if t_name in ["hen_gio_time", "var_hen_gio_time", "entry_hen_gio_time"]:
+                    def _set_txt():
+                        if hasattr(app, 'var_hen_gio_time'):
+                            app.var_hen_gio_time.set(t_val)
+                        if hasattr(app, '_on_hen_gio_time_changed'):
+                            app._on_hen_gio_time_changed()
+                        else:
+                            app.save_config()
+                    app.after(0, _set_txt)
+                    msg = f"Đã đặt {t_name} = {t_val}"
+                else:
+                    msg = f"Đã cập nhật {t_name}"
 
             elif action == "capture_map":
                 if hasattr(app, '_open_map_snipping_tool'):
