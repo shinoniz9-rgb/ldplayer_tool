@@ -188,6 +188,9 @@ class ToolLDPlayerGUI(ctk.CTk):
         # Luồng ngầm hẹn giờ thực thi các Card A, B, C, D
         threading.Thread(target=self._worker_hen_gio_daemon, daemon=True).start()
 
+        # Định kỳ kiểm tra cập nhật nhãn hệ Boss (Card A) theo ngày hệ thống
+        self.after(60000, self._update_boss_element_ui)
+
     def _center_window(self, width: int = 500, height: int = 525):
         """Căn giữa cửa sổ ứng dụng trên màn hình Desktop (kích thước cố định)"""
         self.update_idletasks()
@@ -283,6 +286,35 @@ class ToolLDPlayerGUI(ctk.CTk):
     def _get_character_options(self) -> list:
         """Danh sách các tùy chọn vị trí / chế độ xuất chiến trong menu thả xuống"""
         return ["Xuất Chiến", "Vị Trí 1", "Vị Trí 2", "Vị Trí 3", "Vị Trí 4"]
+
+    @staticmethod
+    def _get_boss_element_info() -> tuple:
+        """Trả về (Thứ, Tên Hệ, Mã Màu) tương ứng ngày hiện tại của hệ thống"""
+        days_map = {
+            0: ("T2", "Địa", "#FDE047"),
+            1: ("T3", "Thủy", "#38BDF8"),
+            2: ("T4", "Hỏa", "#FF5252"),
+            3: ("T5", "Phong", "#4ADE80"),
+            4: ("T6", "Hỏa", "#FF5252"),
+            5: ("T7", "Thủy", "#38BDF8"),
+            6: ("CN", "Phong", "#4ADE80"),
+        }
+        weekday = datetime.now().weekday()
+        return days_map.get(weekday, ("--", "Địa", "#FDE047"))
+
+    def _update_boss_element_ui(self):
+        """Cập nhật nhãn hệ Boss theo thứ hệ thống hiện tại"""
+        try:
+            day_str, elem_name, elem_color = self._get_boss_element_info()
+            if hasattr(self, 'lbl_A_elem') and self.lbl_A_elem.winfo_exists():
+                self.lbl_A_elem.configure(text=f" {elem_name} ", text_color=elem_color)
+        except Exception:
+            pass
+        finally:
+            try:
+                self.after(60000, self._update_boss_element_ui)
+            except Exception:
+                pass
 
     def _get_server_options(self) -> list:
         """Danh sách tùy chọn các máy chủ (Điêu Thuyền, Triệu Vân...) và tự động quét các file server_*.png mới"""
@@ -3570,8 +3602,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
         self.card_A.grid(row=0, column=0, padx=3, pady=2, sticky="nsew")
         self.card_A.grid_columnconfigure(0, weight=1)
         self.card_A.grid_rowconfigure(0, weight=0)
-        self.card_A.grid_rowconfigure((1, 3), weight=1)
-        self.card_A.grid_rowconfigure(2, weight=0)
+        self.card_A.grid_rowconfigure(1, weight=1)
 
         hdr_A = ctk.CTkFrame(self.card_A, fg_color="transparent")
         hdr_A.grid(row=0, column=0, padx=8, pady=(2, 0), sticky="ew")
@@ -3591,17 +3622,36 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
 
         char_options = self._get_character_options()
 
-        # Row 1: Boss + Menu Vị trí xuất chiến (Tương đương Row 1 của Card C)
+        # Row 1: Boss + Badge Hệ (tự động theo thứ hệ thống) + Menu Vị trí xuất chiến (Kích thước & font đồng nhất với Card B)
         row_A1 = ctk.CTkFrame(self.card_A, fg_color="transparent")
-        row_A1.grid(row=1, column=0, padx=6, pady=0, sticky="ew")
+        row_A1.grid(row=1, column=0, padx=6, pady=4, sticky="ew")
+
+        # Cụm bên trái: [x] Boss + Badge Hệ
+        left_box_A = ctk.CTkFrame(row_A1, fg_color="transparent")
+        left_box_A.pack(side="left")
 
         self.chk_A1 = ctk.CTkCheckBox(
-            row_A1, text="Boss", variable=self.var_A1, command=self._on_checkbox_toggled,
+            left_box_A, text="Boss", variable=self.var_A1, command=self._on_checkbox_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="normal"),
-            fg_color="#EA580C", hover_color="#C2410C", checkmark_color="#FFFFFF", text_color="#FFFFFF", checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5
+            fg_color="#EA580C", hover_color="#C2410C", checkmark_color="#FFFFFF", text_color="#FFFFFF",
+            checkbox_width=16, checkbox_height=16, border_width=2, corner_radius=5, width=0
         )
         self.chk_A1.pack(side="left")
 
+        # Badge Hệ Boss tự động cập nhật theo thứ hệ thống
+        day_str, elem_name, elem_color = self._get_boss_element_info()
+        self.lbl_A_elem = ctk.CTkLabel(
+            left_box_A,
+            text=f" {elem_name} ",
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+            text_color=elem_color,
+            fg_color="#1E293B",
+            corner_radius=6,
+            height=20
+        )
+        self.lbl_A_elem.pack(side="left", padx=(6, 0))
+
+        # Menu Vị trí xuất chiến (kích thước width=106, height=24 đồng nhất 100% với hàng Đơn/Đội Card B)
         self.combo_A_char = ctk.CTkOptionMenu(
             row_A1,
             values=char_options,
@@ -3610,7 +3660,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             text_color="#FFFFFF",
             dropdown_text_color="#FFFFFF",
             height=24,
-            width=115,
+            width=106,
             dynamic_resizing=False,
             fg_color="#374151",
             button_color="#4B5563",
@@ -3620,31 +3670,6 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
         self.combo_A_char.set(char_options[0] if char_options else "Xuất Chiến")
         self.combo_A_char.pack(side="right", padx=(0, 2))
 
-        # Đường gạch ngang phân cách màu cam #EA580C ở giữa Row 1 và Lịch Thứ, Hệ
-        divider_horiz_A = ctk.CTkFrame(self.card_A, height=2, corner_radius=0, fg_color="#EA580C", border_width=0)
-        divider_horiz_A.grid(row=2, column=0, sticky="ew", padx=4, pady=(1, 2))
-
-        # Row 3: Lịch hệ Boss Thế Giới 7 ngày T2-CN (Thứ, Hệ)
-        schedule_A = ctk.CTkFrame(self.card_A, fg_color="transparent")
-        schedule_A.grid(row=3, column=0, padx=6, pady=(0, 2), sticky="ew")
-        schedule_A.grid_columnconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
-
-        all_days = [
-            ("T2", "Địa", "#FDE047"),
-            ("T3", "Thủy", "#38BDF8"),
-            ("T4", "Hỏa", "#FF5252"),
-            ("T5", "Phong", "#4ADE80"),
-            ("T6", "Hỏa", "#FF5252"),
-            ("T7", "Thủy", "#38BDF8"),
-            ("CN", "Phong", "#4ADE80"),
-        ]
-        for col_idx, (day, elem, color) in enumerate(all_days):
-            box = ctk.CTkFrame(schedule_A, fg_color="transparent")
-            box.grid(row=0, column=col_idx, sticky="nsew")
-            lbl_d = ctk.CTkLabel(box, text=day, font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color="#F8FAFC", height=16)
-            lbl_d.pack(side="top", anchor="center")
-            lbl_e = ctk.CTkLabel(box, text=elem, font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color=color, height=16)
-            lbl_e.pack(side="top", anchor="center", pady=(3, 0))
 
         # =========================================================================
         # 🔓 [ĐÃ MỞ KHÓA TOÀN DIỆN - SẴN SÀNG SỬ DỤNG]: GIAO DIỆN CARD C (DỊ GIỚI ĐÊM)

@@ -688,32 +688,7 @@ HTML_PAGE = """<!DOCTYPE html>
             }
         }
 
-        /* Boss Element Schedule Glowing Styles */
-        .boss-day-cell {
-            background: rgba(255, 255, 255, 0.035);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 6px;
-            padding: 5px 2px;
-            margin: 0 2px;
-            transition: all 0.2s ease;
-        }
-        .boss-day-cell:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.2);
-            transform: translateY(-1px);
-        }
-        .boss-day-name {
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: #F8FAFC;
-            text-shadow: 0 0 6px rgba(255, 255, 255, 0.6), 0 0 12px rgba(255, 255, 255, 0.3);
-            letter-spacing: 0.5px;
-        }
-        .boss-elem-glow {
-            font-size: 0.80rem;
-            font-weight: 800;
-            margin-top: 3px;
-        }
+        /* Boss Element Colors & Badge Styles */
         .elem-dia {
             color: #FDE047;
             text-shadow: 0 0 8px #FACC15, 0 0 16px rgba(250, 204, 21, 0.6);
@@ -729,6 +704,20 @@ HTML_PAGE = """<!DOCTYPE html>
         .elem-phong {
             color: #4ADE80;
             text-shadow: 0 0 8px #4ADE80, 0 0 16px rgba(74, 222, 128, 0.6);
+        }
+        .boss-elem-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3px 12px;
+            font-size: 1.05rem;
+            font-weight: 900;
+            border-radius: 7px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            letter-spacing: 0.5px;
+            user-select: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
         }
 
         .btn-fs {
@@ -1405,48 +1394,15 @@ HTML_PAGE = """<!DOCTYPE html>
                         <span class="slider"></span>
                     </label>
                 </div>
-                <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.02); padding:8px 12px; border-radius:8px; border:1px solid var(--border);">
-                    <label class="chk-label" style="font-size:0.78rem;">
-                        <input type="checkbox" id="chk_A1" onchange="onCheckboxChanged('A1', this.checked)"> 👑 Boss
-                    </label>
-                    <div style="display:flex; align-items:center; gap:6px;">
-                        <span style="font-size:0.75rem; color:#9CA3AF; white-space:nowrap;">Vị trí:</span>
-                        <select id="combo_A_char" style="width:125px; font-size:0.8rem; padding:4px 6px;" onchange="onComboChanged('A_char', this.value)"></select>
+                <div style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.02); padding:8px 10px; border-radius:8px; border:1px solid var(--border);">
+                    <div style="flex:1; min-width:0; display:flex; align-items:center; gap:8px;">
+                        <label class="chk-label" style="font-size:0.78rem;">
+                            <input type="checkbox" id="chk_A1" onchange="onCheckboxChanged('A1', this.checked)"> 👑 Boss
+                        </label>
+                        <span id="boss_elem_badge" class="boss-elem-badge elem-dia">Địa</span>
                     </div>
-                </div>
-
-                <!-- Đường kẻ cam phân cách có ánh sáng nổi bật -->
-                <div style="height:2px; background:#EA580C; box-shadow: 0 0 8px rgba(234, 88, 12, 0.6); margin:10px 2px 8px 2px; border-radius:1px;"></div>
-
-                <!-- Bảng Hệ Boss 7 ngày (T2 - CN) có hiệu ứng chữ nổi sáng -->
-                <div style="display:grid; grid-template-columns:repeat(7, 1fr); text-align:center; padding:2px 0;">
-                    <div class="boss-day-cell">
-                        <div class="boss-day-name">T2</div>
-                        <div class="boss-elem-glow elem-dia">Địa</div>
-                    </div>
-                    <div class="boss-day-cell">
-                        <div class="boss-day-name">T3</div>
-                        <div class="boss-elem-glow elem-thuy">Thủy</div>
-                    </div>
-                    <div class="boss-day-cell">
-                        <div class="boss-day-name">T4</div>
-                        <div class="boss-elem-glow elem-hoa">Hỏa</div>
-                    </div>
-                    <div class="boss-day-cell">
-                        <div class="boss-day-name">T5</div>
-                        <div class="boss-elem-glow elem-phong">Phong</div>
-                    </div>
-                    <div class="boss-day-cell">
-                        <div class="boss-day-name">T6</div>
-                        <div class="boss-elem-glow elem-hoa">Hỏa</div>
-                    </div>
-                    <div class="boss-day-cell">
-                        <div class="boss-day-name">T7</div>
-                        <div class="boss-elem-glow elem-thuy">Thủy</div>
-                    </div>
-                    <div class="boss-day-cell">
-                        <div class="boss-day-name">CN</div>
-                        <div class="boss-elem-glow elem-phong">Phong</div>
+                    <div style="flex:1; min-width:0;">
+                        <select id="combo_A_char" style="width:100%; font-size:0.82rem; padding:5px 8px; text-align:center;" onchange="onComboChanged('A_char', this.value)"></select>
                     </div>
                 </div>
             </div>
@@ -1468,10 +1424,7 @@ HTML_PAGE = """<!DOCTYPE html>
                         <label class="chk-label" style="font-size:0.75rem; padding:5px 6px; width:100%; justify-content:center;">
                             <input type="checkbox" id="chk_B_don" onchange="onCheckboxChanged('B_don', this.checked)"> 👤 Đơn (Cá Nhân)
                         </label>
-                        <div style="display:flex; align-items:center; gap:4px;">
-                            <span style="font-size:0.72rem; color:#9CA3AF; white-space:nowrap;">Vị trí:</span>
-                            <select id="combo_B_don_char" style="width:100%; font-size:0.78rem; padding:4px 4px;" onchange="onComboChanged('B_don_char', this.value)"></select>
-                        </div>
+                        <select id="combo_B_don_char" style="width:100%; font-size:0.82rem; padding:5px 8px; text-align:center;" onchange="onComboChanged('B_don_char', this.value)"></select>
                     </div>
 
                     <!-- Vạch đứng mờ -->
@@ -1482,10 +1435,7 @@ HTML_PAGE = """<!DOCTYPE html>
                         <label class="chk-label" style="font-size:0.75rem; padding:5px 6px; width:100%; justify-content:center;">
                             <input type="checkbox" id="chk_B_doi" onchange="onCheckboxChanged('B_doi', this.checked)"> 👥 Đội (Tổ Đội)
                         </label>
-                        <div style="display:flex; align-items:center; gap:4px;">
-                            <span style="font-size:0.72rem; color:#9CA3AF; white-space:nowrap;">Vị trí:</span>
-                            <select id="combo_B_team_char" style="width:100%; font-size:0.78rem; padding:4px 4px;" onchange="onComboChanged('B_team_char', this.value)"></select>
-                        </div>
+                        <select id="combo_B_team_char" style="width:100%; font-size:0.82rem; padding:5px 8px; text-align:center;" onchange="onComboChanged('B_team_char', this.value)"></select>
                     </div>
                 </div>
 
@@ -1536,14 +1486,15 @@ HTML_PAGE = """<!DOCTYPE html>
                     </div>
                 </div>
 
-                <!-- Hàng 1: Tổ Đội + Dropdown Vị Trí -->
-                <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.02); padding:8px 12px; border-radius:8px; border:1px solid var(--border); margin-bottom:12px;">
-                    <label class="chk-label" style="font-size:0.78rem;">
-                        <input type="checkbox" id="chk_D2" onchange="onCheckboxChanged('D2', this.checked)"> 👥 Tổ Đội
-                    </label>
-                    <div style="display:flex; align-items:center; gap:6px;">
-                        <span style="font-size:0.75rem; color:#9CA3AF; white-space:nowrap;">Vị trí:</span>
-                        <select id="combo_D_team_char" style="width:125px; font-size:0.8rem; padding:4px 6px;" onchange="onComboChanged('D_team_char', this.value)"></select>
+                <!-- Hàng 1: Tổ Đội + Dropdown Vị Trí (Đồng bộ tỷ lệ 50-50 với Card A & Card B) -->
+                <div style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.02); padding:8px 10px; border-radius:8px; border:1px solid var(--border); margin-bottom:12px;">
+                    <div style="flex:1; min-width:0;">
+                        <label class="chk-label" style="font-size:0.78rem;">
+                            <input type="checkbox" id="chk_D2" onchange="onCheckboxChanged('D2', this.checked)"> 👥 Tổ Đội
+                        </label>
+                    </div>
+                    <div style="flex:1; min-width:0;">
+                        <select id="combo_D_team_char" style="width:100%; font-size:0.82rem; padding:5px 8px; text-align:center;" onchange="onComboChanged('D_team_char', this.value)"></select>
                     </div>
                 </div>
 
@@ -2035,6 +1986,11 @@ HTML_PAGE = """<!DOCTYPE html>
                 if (el && document.activeElement !== el) el.value = v;
             }
 
+            // Cập nhật nhãn hệ Boss Thế Giới (Card A)
+            if (typeof updateBossElementBadge === 'function') {
+                updateBossElementBadge(data.boss_elem ? data.boss_elem.name : null);
+            }
+
             for (const [k, v] of Object.entries(data.inputs || {})) {
                 const id = 'entry_' + k;
                 if (userLocks[id] && now < userLocks[id]) continue;
@@ -2515,11 +2471,25 @@ HTML_PAGE = """<!DOCTYPE html>
         setInterval(fetchStatus, 3000);
         setStreamSpeed(currentStreamInterval);
 
+        function updateBossElementBadge(elemName) {
+            const badge = document.getElementById('boss_elem_badge');
+            if (!badge) return;
+            if (!elemName) {
+                const d = new Date().getDay();
+                const m = {1:'Địa', 2:'Thủy', 3:'Hỏa', 4:'Phong', 5:'Hỏa', 6:'Thủy', 0:'Phong'};
+                elemName = m[d] || 'Địa';
+            }
+            badge.textContent = elemName;
+            const clsMap = {'Địa': 'elem-dia', 'Thủy': 'elem-thuy', 'Hỏa': 'elem-hoa', 'Phong': 'elem-phong'};
+            badge.className = `boss-elem-badge ${clsMap[elemName] || 'elem-dia'}`;
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const box = document.getElementById('screenPreviewBox');
             if (box) {
                 box.addEventListener('click', handleScreenTap);
             }
+            updateBossElementBadge();
         });
     </script>
 </body>
@@ -2674,6 +2644,8 @@ class ToolWebRequestHandler(BaseHTTPRequestHandler):
             map_options = app._get_map_options() if hasattr(app, '_get_map_options') else ["(Chưa có map)"]
             quai_options = app._get_quai_options() if hasattr(app, '_get_quai_options') else ["(Chưa có quái)"]
 
+            day_str, elem_name, elem_color = app._get_boss_element_info() if hasattr(app, '_get_boss_element_info') else ("--", "Địa", "#FDE047")
+
             data = {
                 "is_running": is_running,
                 "selected_tab": selected_tab or (tabs[0] if tabs else ""),
@@ -2681,6 +2653,11 @@ class ToolWebRequestHandler(BaseHTTPRequestHandler):
                 "server": app.combo_server.get() if hasattr(app, 'combo_server') else "Điêu Thuyền",
                 "servers": app._get_server_options() if hasattr(app, '_get_server_options') else ["Điêu Thuyền"],
                 "char_options": app._get_character_options() if hasattr(app, '_get_character_options') else ["Xuất Chiến"],
+                "boss_elem": {
+                    "day": day_str,
+                    "name": elem_name,
+                    "color": elem_color
+                },
                 "list_E_A": list_E_A,
                 "list_E_B": list_E_B,
                 "quan_su_options": quan_su_options,
