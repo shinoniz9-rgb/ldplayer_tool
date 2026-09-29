@@ -191,6 +191,9 @@ class ToolLDPlayerGUI(ctk.CTk):
         # Định kỳ kiểm tra cập nhật nhãn hệ Boss (Card A) theo ngày hệ thống
         self.after(60000, self._update_boss_element_ui)
 
+        # Định kỳ cập nhật đồng hồ hệ thống thời gian thực (realtime clock)
+        self._update_realtime_clock()
+
     def _center_window(self, width: int = 500, height: int = 525):
         """Căn giữa cửa sổ ứng dụng trên màn hình Desktop (kích thước cố định)"""
         self.update_idletasks()
@@ -313,6 +316,20 @@ class ToolLDPlayerGUI(ctk.CTk):
         finally:
             try:
                 self.after(60000, self._update_boss_element_ui)
+            except Exception:
+                pass
+
+    def _update_realtime_clock(self):
+        """Cập nhật đồng hồ hệ thống thời gian thực (HH:MM:SS) liên tục mỗi giây"""
+        try:
+            if hasattr(self, 'lbl_realtime_clock') and self.lbl_realtime_clock.winfo_exists():
+                now_str = datetime.now().strftime("%H:%M:%S")
+                self.lbl_realtime_clock.configure(text=now_str)
+        except Exception:
+            pass
+        finally:
+            try:
+                self.after(1000, self._update_realtime_clock)
             except Exception:
                 pass
 
@@ -1442,30 +1459,51 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
         self.card_path.grid_columnconfigure(0, weight=1)
         self.card_path.grid_columnconfigure(1, weight=0)
 
-        # Hàng 1: [ ] Hẹn Giờ  -  Menu/Ô chọn thời gian (HH:MM)
+        # Hàng 1: [ ] Hẹn Giờ (trái) ... [ 05:00 ] (phải ô đường dẫn)  |  [ Giờ HT Realtime ] (trên nút Folder Path)
         self.frame_hen_gio = ctk.CTkFrame(self.card_path, fg_color="transparent")
-        self.frame_hen_gio.grid(row=0, column=0, columnspan=2, padx=8, pady=(4, 2), sticky="ew")
+        self.frame_hen_gio.grid(row=0, column=0, padx=(8, 4), pady=(4, 2), sticky="ew")
+
+        col_hen_gio = ctk.CTkFrame(self.frame_hen_gio, fg_color="transparent", width=157, height=26)
+        col_hen_gio.pack(side="left")
+        col_hen_gio.pack_propagate(False)
 
         self.chk_hen_gio = ctk.CTkCheckBox(
-            self.frame_hen_gio,
-            text="Hẹn Giờ",
+            col_hen_gio,
+            text="",
             variable=self.var_hen_gio,
             command=self._on_hen_gio_toggled,
-            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
             fg_color="#EA580C",
             hover_color="#C2410C",
-            text_color="#FFFFFF",
-            height=22,
-            checkbox_width=18,
-            checkbox_height=18
+            checkmark_color="#FFFFFF",
+            checkbox_width=16,
+            checkbox_height=16,
+            border_width=2,
+            corner_radius=5,
+            width=16
         )
-        self.chk_hen_gio.pack(side="left", padx=(2, 8))
+        self.chk_hen_gio.pack(side="left", padx=(4, 4))
+
+        self.btn_lbl_hen_gio = ctk.CTkButton(
+            col_hen_gio,
+            text="Hẹn Giờ",
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+            text_color="#FFFFFF",
+            height=25,
+            width=128,
+            fg_color="#374151",
+            hover_color="#4B5563",
+            corner_radius=6,
+            anchor="center",
+            command=lambda: [self.var_hen_gio.set(not self.var_hen_gio.get()), self._on_hen_gio_toggled()]
+        )
+        self.btn_lbl_hen_gio.pack(side="left", padx=(0, 0))
 
         self.entry_hen_gio_time = ctk.CTkEntry(
             self.frame_hen_gio,
             textvariable=self.var_hen_gio_time,
             width=70,
-            height=24,
+            height=25,
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
             text_color="#FFFFFF",
             fg_color="#1F2937",
@@ -1474,11 +1512,26 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             justify="center",
             placeholder_text="05:00"
         )
-        self.entry_hen_gio_time.pack(side="left", padx=(0, 4))
+        self.entry_hen_gio_time.pack(side="right", padx=(0, 0))
         self.entry_hen_gio_time.bind("<FocusOut>", lambda e: self._on_hen_gio_time_changed())
         self.entry_hen_gio_time.bind("<Return>", lambda e: self._on_hen_gio_time_changed())
         # Alias đảm bảo tương thích
         self.combo_hen_gio_time = self.entry_hen_gio_time
+
+        # Ô giờ hệ thống thời gian thực (realtime clock) đặt phía trên nút Folder Path, kích thước chuẩn 95x25 bằng nút Folder Path
+        self.lbl_realtime_clock = ctk.CTkLabel(
+            self.card_path,
+            text=datetime.now().strftime("%H:%M:%S"),
+            width=95,
+            height=25,
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+            text_color="#38BDF8",
+            fg_color="#1F2937",
+            border_width=1,
+            border_color="#374151",
+            corner_radius=6
+        )
+        self.lbl_realtime_clock.grid(row=0, column=1, padx=(4, 8), pady=(4, 2), sticky="e")
 
         # Hàng 2: Đường dẫn LDPlayer
         self.entry_ld_path = ctk.CTkEntry(

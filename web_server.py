@@ -1370,11 +1370,13 @@ HTML_PAGE = """<!DOCTYPE html>
                     <span class="card-title">⏰ Hẹn Giờ Hoạt Động (A, B, C, D)</span>
                 </div>
                 <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.02); padding:8px 12px; border-radius:8px; border:1px solid var(--border);">
-                    <label class="chk-label" style="font-size:0.82rem; font-weight:600; display:flex; align-items:center; gap:6px;">
-                        <input type="checkbox" id="chk_hen_gio" onchange="onCheckboxChanged('hen_gio', this.checked)"> ⏰ Hẹn Giờ
-                    </label>
-                    <div style="display:flex; align-items:center; gap:6px;">
+                    <div class="combat-col-left">
+                        <input type="checkbox" id="chk_hen_gio" onchange="onCheckboxChanged('hen_gio', this.checked)">
+                        <button type="button" class="combat-btn-ctrl" onclick="document.getElementById('chk_hen_gio').click()" style="justify-content:center; text-align:center;">Hẹn Giờ</button>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
                         <input type="text" id="entry_hen_gio_time" value="05:00" placeholder="05:00" maxlength="5" class="combat-select-right" style="width:75px; text-align:center; font-weight:700; color:#fff; background:#1e293b; border:1px solid #475569;" onchange="onTextChanged('hen_gio_time', this.value)" onkeyup="if(event.key==='Enter') this.blur()">
+                        <span id="lbl_realtime_clock" style="font-family:monospace, 'Segoe UI'; font-size:0.82rem; font-weight:700; color:#38bdf8; background:#1e293b; border:1px solid #475569; padding:4px 10px; border-radius:6px; min-width:70px; text-align:center;">--:--:--</span>
                     </div>
                 </div>
                 <div style="font-size:0.72rem; color:var(--text-muted); margin-top:6px; padding:0 4px; line-height:1.4;">
@@ -2484,12 +2486,22 @@ HTML_PAGE = """<!DOCTYPE html>
             badge.className = `boss-elem-badge ${clsMap[elemName] || 'elem-dia'}`;
         }
 
+        function updateRealtimeClock() {
+            const badge = document.getElementById('lbl_realtime_clock');
+            if (!badge) return;
+            const now = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            badge.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+        }
+        setInterval(updateRealtimeClock, 1000);
+
         document.addEventListener('DOMContentLoaded', () => {
             const box = document.getElementById('screenPreviewBox');
             if (box) {
                 box.addEventListener('click', handleScreenTap);
             }
             updateBossElementBadge();
+            updateRealtimeClock();
         });
     </script>
 </body>
