@@ -1206,14 +1206,11 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                 val_nt_time = "Tất Cả"
             self.combo_nhan_thu_time.set(val_nt_time if val_nt_time in nhan_thu_opts else "Tất Cả")
 
-        if "var_nhan_thu" in cfg and hasattr(self, 'var_nhan_thu'):
-            is_nt = bool(cfg["var_nhan_thu"])
-            self.var_nhan_thu.set(is_nt)
+        # Tab Ngày: Hoạt Động Ngày (Nhận Thư) - Mặc định khi mở tool luôn nhả ô tích (False)
+        if hasattr(self, 'var_nhan_thu'):
+            self.var_nhan_thu.set(False)
             if hasattr(self, '_event_nhan_thu'):
-                if is_nt:
-                    self._event_nhan_thu.set()
-                else:
-                    self._event_nhan_thu.clear()
+                self._event_nhan_thu.clear()
 
         # Hẹn Giờ
         if "var_hen_gio_time" in cfg and hasattr(self, 'var_hen_gio_time'):
@@ -8342,21 +8339,9 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                 self.after(0, self.log_info, "ℹ️ [40 NPC - Auto] Ô 'Tổ Đội' KHÔNG được tích ➔ Bỏ qua bước kiểm tra tổ đội Lần 1.")
 
             # BƯỚC 3 (Vào Lôi Đài):
-            # 3.1: Quét & Tap d_dichuyen.png (70%, ROI 0,400,1280,720) -> Hoãn 2.0s
+            # 3.1: Quét & Tap d_conglt.png (80%, ROI 0,400,1280,720) -> Hoãn 2.0s
             if self._should_stop_card_D(): return
-            self.after(0, self.log_info, "👁️ [40 NPC - Bước 3.1] Quét & tap Điểm Gần Cổng 'card_d/40npc/d_dichuyen.png' (70%, ROI 0,400,1280,720)...")
-            while not self._should_stop_card_D():
-                dc_x, dc_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_d/40npc/d_dichuyen.png", threshold=0.70, region=(0, 400, 1280, 720))
-                if dc_x is not None and dc_y is not None:
-                    self.after(0, self.log_info, f"🎯 Phát hiện nút Điểm Gần Cổng tại ({dc_x}, {dc_y})! Tap click ➔ Hoãn 2.0s...")
-                    self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {dc_x} {dc_y}"])
-                    time.sleep(2.0)
-                    break
-                time.sleep(0.5)
-
-            # 3.2: Quét & Tap d_conglt.png (80%, ROI 0,400,1280,720) -> Hoãn 2.0s
-            if self._should_stop_card_D(): return
-            self.after(0, self.log_info, "👁️ [40 NPC - Bước 3.2] Quét & tap Cổng Lôi Đài 'card_d/40npc/d_conglt.png' (80%, ROI 0,400,1280,720)...")
+            self.after(0, self.log_info, "👁️ [40 NPC - Bước 3.1] Quét & tap Cổng Lôi Đài 'card_d/40npc/d_conglt.png' (80%, ROI 0,400,1280,720)...")
             while not self._should_stop_card_D():
                 clt_x, clt_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_d/40npc/d_conglt.png", threshold=0.80, region=(0, 400, 1280, 720))
                 if clt_x is not None and clt_y is not None:
@@ -8366,9 +8351,9 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                     break
                 time.sleep(0.5)
 
-            # 3.3: Quét & Tap d_vaolt.png (80%, ROI 0,400,1280,720) -> Hoãn 3.0s
+            # 3.2: Quét & Tap d_vaolt.png (80%, ROI 0,400,1280,720) -> Hoãn 3.0s
             if self._should_stop_card_D(): return
-            self.after(0, self.log_info, "👁️ [40 NPC - Bước 3.3] Quét & tap nút Vào Lôi Đài 'card_d/40npc/d_vaolt.png' (80%, ROI 0,400,1280,720)...")
+            self.after(0, self.log_info, "👁️ [40 NPC - Bước 3.2] Quét & tap nút Vào Lôi Đài 'card_d/40npc/d_vaolt.png' (80%, ROI 0,400,1280,720)...")
             while not self._should_stop_card_D():
                 vlt_x, vlt_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_d/40npc/d_vaolt.png", threshold=0.80, region=(0, 400, 1280, 720))
                 if vlt_x is not None and vlt_y is not None:
@@ -9447,12 +9432,29 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                 self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {v_x} {v_y}"])
                 time.sleep(0.4)
             else:
-                self.after(0, self.log_info, "👉 Chưa thấy nút Thư ➔ Tap nút xanh lá mở menu (1213, 648) ➔ Hoãn 0.4s...")
-                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 1213 648"])
+                self.after(0, self.log_info, "👉 Chưa thấy nút Thư ➔ Quét tìm biểu tượng nút Menu 'card_top/login/login_menu.png' (80%, ROI 1190,640,1280,720)...")
+                menu_x, menu_y = None, None
+                while not self.stop_requested:
+                    menu_x, menu_y = self._find_template_on_screen(
+                        dnconsole_path, tab_index, "card_top/login/login_menu.png",
+                        threshold=0.80, region=(1190, 640, 1280, 720)
+                    )
+                    if menu_x is not None and menu_y is not None:
+                        break
+                    time.sleep(0.4)
+
+                if self.stop_requested or menu_x is None:
+                    self.after(0, self.log_info, "🛑 [Tự Động Nhận Thư] Đã nhận lệnh Dừng, hủy thao tác Nhận Thư.")
+                    return False
+
+                self.after(0, self.log_info, f"🎯 Phát hiện nút Menu tại ({menu_x}, {menu_y})! Tap mở menu ➔ Hoãn 0.4s...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {menu_x} {menu_y}"])
                 time.sleep(0.4)
+
+                self.after(0, self.log_info, "👁️ Quét lại nút Thư 'card_top/login/login_thu.png' (80%)...")
                 v_x, v_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_top/login/login_thu.png", threshold=0.80, region=(735, 405, 1280, 720))
                 if v_x is not None and v_y is not None:
-                    self.after(0, self.log_info, f"🎯 Phát hiện nút Thư tại ({v_x}, {v_y})! Tap click trực tiếp ➔ Hoãn 0.4s...")
+                    self.after(0, self.log_info, f"🎯 Phát hiện nút Thư tại ({v_x}, {v_y})! Tap click ➔ Hoãn 0.4s...")
                     self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {v_x} {v_y}"])
                     time.sleep(0.4)
                 else:
@@ -9484,6 +9486,12 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             time.sleep(0.4)
 
             self.after(0, self.log_info, f"✅ [Tự Động Nhận Thư ({time_slot})] Đã hoàn thành toàn bộ thao tác Nhận Thư!")
+            # Khi hoàn thành toàn bộ thao tác Nhận Thư thì nhả ô tích
+            if hasattr(self, 'var_nhan_thu'):
+                self.after(0, lambda: self.var_nhan_thu.set(False))
+            if hasattr(self, '_event_nhan_thu'):
+                self._event_nhan_thu.clear()
+            self.after(0, self.save_config)
             return True
         except Exception as e:
             self.after(0, self.log_error, f"❌ Lỗi tiến trình Nhận Thư: {e}")
