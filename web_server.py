@@ -1614,6 +1614,7 @@ HTML_PAGE = """<!DOCTYPE html>
                         <span class="chk-combat-sub">(Tắt Auto)</span>
                     </div>
                     <select id="combo_buff" class="combat-select-right" onchange="onComboChanged('buff', this.value)">
+                        <option value="Buff Train">Buff Train</option>
                         <option value="Buff HP">Buff HP</option>
                         <option value="Buff SP">Buff SP</option>
                         <option value="Buff 3HP / 1SP">Buff 3HP / 1SP</option>
