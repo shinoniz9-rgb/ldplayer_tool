@@ -1882,8 +1882,9 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             vt_x, vt_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_f/f_vaotran.png", threshold=0.80, region=(1215, 0, 1280, 45))
             if vt_x is not None and vt_y is not None:
                 self.after(0, self.log_info, f"🎯 [Buff Train] Phát hiện 'card_f/f_vaotran.png' tại ({vt_x}, {vt_y}) ➔ Trận đấu đã kết thúc / Đang ngoài trận!")
-                self.after(0, self.log_info, "🔄 [Buff Train] Tự động reset chu kỳ về Lượt 1. Chờ vào trận đấu mới...")
+                self.after(0, self.log_info, "🔄 [Buff Train] Reset về Lượt 1 ➔ Tap 2 lần nút Auto (190, 140)...")
                 current_turn = 1
+                self._tap_login_auto_twice(dnconsole_path, tab_index)
                 while not self.stop_requested and self.var_buff.get():
                     if self._sleep_with_stop_check(0.35, check_active=self.var_buff.get):
                         return 1
@@ -1898,6 +1899,11 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                     if vt_chk_x is None or vt_chk_y is None:
                         self.after(0, self.log_info, "🎯 [Buff Train] 'card_f/f_vaotran.png' đã biến mất ➔ Đã vào trận đấu mới! Bắt đầu Lượt 1...")
                         break
+
+                # Hoãn 0.8s để màn hình load đủ giao diện trận đấu mới
+                self.after(0, self.log_info, "⏳ [Buff Train] Hoãn 0.8s để màn hình load đủ giao diện trận đấu...")
+                if self._sleep_with_stop_check(0.8, check_active=self.var_buff.get):
+                    return 1
 
                 if found_turn:
                     current_turn = 1
@@ -9756,11 +9762,11 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                 if len(self._completed_mail_slots) > 20:
                     self._completed_mail_slots = {s for s in self._completed_mail_slots if s.startswith(today_str)}
 
-                # Chờ 5 giây hoặc thức dậy ngay lập tức nếu event thay đổi
-                if hasattr(self, '_event_nhan_thu'):
-                    self._event_nhan_thu.wait(timeout=5.0)
-                else:
-                    time.sleep(5.0)
+                # Chờ 3.0 giây ngắt quãng (kiểm tra mỗi 0.2s để ngắt tức thì khi người dùng tắt ô Nhận Thư)
+                for _ in range(15):
+                    if not getattr(self, 'var_nhan_thu', None) or not self.var_nhan_thu.get() or self.stop_requested:
+                        break
+                    time.sleep(0.2)
 
             except Exception as e:
                 self.after(0, self.log_error, f"⚠️ Lỗi luồng tự động nhận thư: {e}")
@@ -9869,11 +9875,11 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                     self.after(0, self.save_config)
                     self.after(0, self.log_info, f"🎉 [HẸN GIỜ] Đã hoàn thành toàn bộ hoạt động theo lịch hẹn ({target_time})! Đã tự động trả tất cả công tắc về OFF.")
 
-                # Chờ 2 giây hoặc thức dậy ngay lập tức nếu event thay đổi
-                if hasattr(self, '_event_hen_gio'):
-                    self._event_hen_gio.wait(timeout=2.0)
-                else:
-                    time.sleep(2.0)
+                # Chờ 1.0 giây ngắt quãng (kiểm tra mỗi 0.1s để ngắt tức thì khi người dùng tắt ô Hẹn Giờ)
+                for _ in range(10):
+                    if not getattr(self, 'var_hen_gio', None) or not self.var_hen_gio.get() or self.stop_requested:
+                        break
+                    time.sleep(0.1)
 
             except Exception as e:
                 self.after(0, self.log_error, f"⚠️ Lỗi luồng hẹn giờ: {e}")
