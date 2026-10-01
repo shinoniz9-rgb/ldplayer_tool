@@ -480,6 +480,7 @@ class DanhThuongTool(ctk.CTk):
     # ĐIỀU KHIỂN BẬT / DỪNG
     # =========================================================================
     def _on_danh_thuong_toggled(self):
+        self._save_config()
         if self.var_danh_thuong.get():
             self.stop_requested = False
             self._stop_event.clear()
@@ -700,39 +701,57 @@ class DanhThuongTool(ctk.CTk):
 
         return None, None
 
-    def _tap_login_auto_twice(self, dnconsole_path: str, tab_index: str):
-        """Tap 2 lần cách nhau 0.15s vào tọa độ nút Auto (190, 140)"""
-        for _ in range(2):
-            if self.stop_requested or self._stop_event.is_set() or not self.var_danh_thuong.get():
-                break
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 190 140"])
-            time.sleep(0.15)
-
-    def _execute_fast_danh_thuong_sequence(self, dnconsole_path: str, tab_index: str, tx: int, ty: int):
-        """Thực thi chuỗi 4 cú tap liên hoàn hoãn 0s: (1160, 680) -> (tx, ty) -> (1160, 680) -> (tx, ty)
-        Sử dụng ghép chuỗi lệnh shell ADB để thực thi siêu tốc (< 0.03s), không bị lag CPU Windows."""
+    def _tap(self, dnconsole_path: str, tab_index: str, x: int, y: int):
+        """Thực hiện tap vào tọa độ (x, y) với ưu tiên Direct ADB siêu tốc, fallback qua dnconsole"""
+        if self.stop_requested or self._stop_event.is_set() or not self.var_danh_thuong.get():
+            return
         tab_key = str(tab_index)
         active_dev = self._active_adb_device.get(tab_key)
         adb_path = os.path.join(self.ld_path, "adb.exe")
-        shell_cmd = f"input tap 1160 680 && input tap {tx} {ty} && input tap 1160 680 && input tap {tx} {ty}"
-
-        # 1. Ưu tiên Direct ADB nếu có thiết bị kết nối trực tiếp
         if active_dev and os.path.exists(adb_path):
             try:
                 creation_flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
-                subprocess.run(
-                    [adb_path, "-s", active_dev, "shell", shell_cmd],
+                res = subprocess.run(
+                    [adb_path, "-s", active_dev, "shell", "input", "tap", str(x), str(y)],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                     timeout=5,
                     creationflags=creation_flags
                 )
-                return
+                if res.returncode == 0:
+                    return
             except Exception:
                 pass
+        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {x} {y}"])
 
-        # 2. Fallback qua dnconsole adb
-        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell {shell_cmd}"])
+    def _tap_login_auto_twice(self, dnconsole_path: str, tab_index: str):
+        """Tap 2 lần cách nhau 0.15s vào tọa độ nút Auto (190, 140)"""
+        for _ in range(2):
+            if self.stop_requested or self._stop_event.is_set() or not self.var_danh_thuong.get():
+                break
+            self._tap(dnconsole_path, tab_index, 190, 140)
+            time.sleep(0.15)
+
+    def _execute_danh_thuong_sequence(self, dnconsole_path: str, tab_index: str, tx: int, ty: int):
+        """Thực thi chuỗi 4 cú tap tuần tự hoãn 0s: (1160, 680) -> (tx, ty) -> (1160, 680) -> (tx, ty)
+        Mỗi cú tap kiểm tra cờ dừng khẩn cấp ngay lập tức."""
+        # 1. Tap tọa độ (1160, 680) hoãn 0s
+        self._tap(dnconsole_path, tab_index, 1160, 680)
+        if not self.var_danh_thuong.get() or self.stop_requested:
+            return
+
+        # 2. Tap tọa độ (theo mốc chọn ở menu drop Sau 1 > Sau 5 , Trước 1 > Trước 5) hoãn 0s
+        self._tap(dnconsole_path, tab_index, tx, ty)
+        if not self.var_danh_thuong.get() or self.stop_requested:
+            return
+
+        # 3. Tap tọa độ (1160, 680) hoãn 0s
+        self._tap(dnconsole_path, tab_index, 1160, 680)
+        if not self.var_danh_thuong.get() or self.stop_requested:
+            return
+
+        # 4. Tap tọa độ (theo mốc chọn ở menu drop Sau 1 > Sau 5 , Trước 1 > Trước 5) hoãn 0s
+        self._tap(dnconsole_path, tab_index, tx, ty)
 
     # =========================================================================
     # CORE LOGIC CHẾ ĐỘ ĐÁNH THƯỜNG (KẾ THỪA 100% CƠ CHẾ BƯỚC 0 CỦA BUFF TRAIN)
@@ -819,7 +838,7 @@ class DanhThuongTool(ctk.CTk):
         # 2. Tap tọa độ (theo mốc chọn ở menu drop Sau 1 > Sau 5 , Trước 1 > Trước 5) hoãn 0s
         # 3. Tap tọa độ (1160, 680) hoãn 0s
         # 4. Tap tọa độ (theo mốc chọn ở menu drop Sau 1 > Sau 5 , Trước 1 > Trước 5) hoãn 0s
-        self._execute_fast_danh_thuong_sequence(dnconsole_path, tab_index, tx, ty)
+        self._execute_danh_thuong_sequence(dnconsole_path, tab_index, tx, ty)
 
         if not self.var_danh_thuong.get() or self.stop_requested:
             return
