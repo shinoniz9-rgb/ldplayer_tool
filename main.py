@@ -1162,10 +1162,12 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
         # Tab 3: Chiến Đấu (Buff / HP / SP & Kết Giới)
         if "var_buff" in cfg and hasattr(self, 'var_buff'):
             self.var_buff.set(bool(cfg["var_buff"]))
-        buff_opts = ["Buff Train", "Buff HP", "Buff SP", "Buff 3HP / 1SP", "HP / SP / HS"]
+        buff_opts = ["Buff Train HP", "Buff Train SP", "Buff HP", "Buff SP", "Buff 3HP / 1SP", "HP / SP / HS"]
         if "combo_buff" in cfg and hasattr(self, 'combo_buff'):
             val = cfg["combo_buff"]
-            if val in ["Buff 3HP / SP", "Buff 3HP / 1SP"]:
+            if val in ["Buff Train", "Buff Train HP", "Buff Trian HP"]:
+                val = "Buff Train HP"
+            elif val in ["Buff 3HP / SP", "Buff 3HP / 1SP"]:
                 val = "Buff 3HP / 1SP"
             self.combo_buff.set(val if val in buff_opts else "Buff HP")
 
@@ -1794,8 +1796,8 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                 if choice != last_choice:
                     last_choice = choice
                     train_turn = 1
-                if choice == "Buff Train":
-                    train_turn = self._handle_hp_sp_buff_train(dnconsole_path, tab_name, tab_index, train_turn)
+                if choice in ["Buff Train HP", "Buff Train SP"]:
+                    train_turn = self._handle_hp_sp_buff_train(dnconsole_path, tab_name, tab_index, train_turn, choice=choice)
                 elif choice == "Buff HP":
                     self._handle_hp_sp_buff_hp(dnconsole_path, tab_name, tab_index)
                 elif choice == "Buff SP":
@@ -1851,34 +1853,38 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                 break
             time.sleep(0.25)
 
-    def _handle_hp_sp_buff_train(self, dnconsole_path: str, tab_name: str, tab_index: str, train_turn: int) -> int:
+    def _handle_hp_sp_buff_train(self, dnconsole_path: str, tab_name: str, tab_index: str, train_turn: int, choice: str = "Buff Train HP") -> int:
         """
-        Mốc Buff Train:
+        Mốc Buff Train (HP / SP):
         1. Quét song song f_vaotran.png (ROI 1215, 0, 1280, 45, 80%) và f_dung.png (ROI 640, 0, 1280, 145, 80%):
            Nếu phát hiện f_vaotran.png (hết trận đấu / đang ở ngoài): Tự động reset thứ tự buff về Lượt 1.
         2. Khi đến lượt 1 (f_dung xuất hiện) ở đầu trận:
            Tap 2 lần nút Auto (190, 140) cách nhau 0.15s ➔ Hoãn 2.0s ➔ Chuyển sang Lượt 2.
-        3. Khi đến lượt 2 (f_dung xuất hiện): Quét tìm chiêu card_f/skill/f_hp.png (85%, ROI: 640, 0, 1280, 145):
-           - Nhánh không thấy chiêu HP: Tap 2 lần nút Auto (190, 140) cách nhau 0.15s ➔ Hoãn 4.0s ➔ Quay lại Lượt 1 (vòng lặp 1-2-1-2).
-           - Nhánh có thấy chiêu HP:
-             Tap vào ảnh chiêu f_hp.png ➔ Hoãn 0s.
+        3. Khi đến lượt 2 (f_dung xuất hiện): Quét tìm chiêu card_f/skill/f_hp.png hoặc f_sp.png (85%, ROI: 640, 0, 1280, 145):
+           - Nhánh không thấy chiêu: Tap 2 lần nút Auto (190, 140) cách nhau 0.15s ➔ Hoãn 4.0s ➔ Quay lại Lượt 1 (vòng lặp 1-2-1-2).
+           - Nhánh có thấy chiêu:
+             Tap vào ảnh chiêu (f_hp.png / f_sp.png) ➔ Hoãn 0s.
              Tap vào tọa độ mục tiêu trung tâm (905, 515) ➔ Hoãn 0s.
              Tap 2 lần nút Auto (190, 140) cách nhau 0.15s ➔ Hoãn 4.0s ➔ Quay lại Lượt 1 (vòng lặp 1-2-1-2).
         """
         if not self.var_buff.get() or self.stop_requested:
             return train_turn
 
+        skill_type = "SP" if choice == "Buff Train SP" else "HP"
+        skill_template = "card_f/skill/f_sp.png" if skill_type == "SP" else "card_f/skill/f_hp.png"
+        log_tag = f"Buff Train {skill_type}"
+
         current_turn = 1 if train_turn not in (1, 2) else train_turn
 
-        self.after(0, self.log_info, f"⚔️ [Buff Train - LƯỢT {current_turn}] Quét chờ lượt đánh (f_dung) hoặc ngoài/hết trận (f_vaotran)...")
+        self.after(0, self.log_info, f"⚔️ [{log_tag} - LƯỢT {current_turn}] Quét chờ lượt đánh (f_dung) hoặc ngoài/hết trận (f_vaotran)...")
 
         found_turn = False
         while not self.stop_requested and self.var_buff.get():
             # 1. Quét f_vaotran.png (ROI 1215, 0, 1280, 45, 80%) kiểm tra hết trận / ngoài trận
             vt_x, vt_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_f/f_vaotran.png", threshold=0.80, region=(1215, 0, 1280, 45))
             if vt_x is not None and vt_y is not None:
-                self.after(0, self.log_info, f"🎯 [Buff Train] Phát hiện 'card_f/f_vaotran.png' tại ({vt_x}, {vt_y}) ➔ Trận đấu đã kết thúc / Đang ngoài trận!")
-                self.after(0, self.log_info, "🔄 [Buff Train] Reset về Lượt 1 ➔ Tap 2 lần nút Auto (190, 140)...")
+                self.after(0, self.log_info, f"🎯 [{log_tag}] Phát hiện 'card_f/f_vaotran.png' tại ({vt_x}, {vt_y}) ➔ Trận đấu đã kết thúc / Đang ngoài trận!")
+                self.after(0, self.log_info, f"🔄 [{log_tag}] Reset về Lượt 1 ➔ Tap 2 lần nút Auto (190, 140)...")
                 current_turn = 1
                 self._tap_login_auto_twice(dnconsole_path, tab_index)
                 while not self.stop_requested and self.var_buff.get():
@@ -1887,17 +1893,17 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                     # Kiểm tra nếu f_dung.png xuất hiện (đã vào trận và đến lượt)
                     d_chk_x, d_chk_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_f/f_dung.png", threshold=0.80, region=(640, 0, 1280, 145))
                     if d_chk_x is not None and d_chk_y is not None:
-                        self.after(0, self.log_info, f"🎯 [Buff Train] Phát hiện 'card_f/f_dung.png' tại ({d_chk_x}, {d_chk_y}) ➔ Đã chính thức vào trận đấu mới!")
+                        self.after(0, self.log_info, f"🎯 [{log_tag}] Phát hiện 'card_f/f_dung.png' tại ({d_chk_x}, {d_chk_y}) ➔ Đã chính thức vào trận đấu mới!")
                         found_turn = True
                         break
                     # Kiểm tra f_vaotran.png đã biến mất chưa
                     vt_chk_x, vt_chk_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_f/f_vaotran.png", threshold=0.80, region=(1215, 0, 1280, 45))
                     if vt_chk_x is None or vt_chk_y is None:
-                        self.after(0, self.log_info, "🎯 [Buff Train] 'card_f/f_vaotran.png' đã biến mất ➔ Đã vào trận đấu mới! Bắt đầu Lượt 1...")
+                        self.after(0, self.log_info, f"🎯 [{log_tag}] 'card_f/f_vaotran.png' đã biến mất ➔ Đã vào trận đấu mới! Bắt đầu Lượt 1...")
                         break
 
                 # Hoãn 0.6s để màn hình load đủ giao diện trận đấu mới
-                self.after(0, self.log_info, "⏳ [Buff Train] Hoãn 0.6s để màn hình load đủ giao diện trận đấu...")
+                self.after(0, self.log_info, f"⏳ [{log_tag}] Hoãn 0.6s để màn hình load đủ giao diện trận đấu...")
                 if self._sleep_with_stop_check(0.6, check_active=self.var_buff.get):
                     return 1
 
@@ -1908,7 +1914,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             # 2. Quét f_dung.png (ROI 640, 0, 1280, 145, 80%) kiểm tra đến lượt ra chiêu
             d_x, d_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_f/f_dung.png", threshold=0.80, region=(640, 0, 1280, 145))
             if d_x is not None and d_y is not None:
-                self.after(0, self.log_info, f"🎯 [Buff Train] Đã phát hiện 'card_f/f_dung.png' tại ({d_x}, {d_y}) (CHỈ QUÉT, KHÔNG TAP) ➔ Đã đến lượt ra chiêu!")
+                self.after(0, self.log_info, f"🎯 [{log_tag}] Đã phát hiện 'card_f/f_dung.png' tại ({d_x}, {d_y}) (CHỈ QUÉT, KHÔNG TAP) ➔ Đã đến lượt ra chiêu!")
                 found_turn = True
                 break
 
@@ -1920,37 +1926,40 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
 
         # XỬ LÝ LƯỢT ĐÁNH
         if current_turn == 1:
-            self.after(0, self.log_info, "⚡ [Buff Train - LƯỢT 1] Tap 2 lần nút Auto (190, 140) ➔ Hoãn 2.0s...")
+            self.after(0, self.log_info, f"⚡ [{log_tag} - LƯỢT 1] Tap 2 lần nút Auto (190, 140) ➔ Hoãn 2.0s...")
             self._tap_login_auto_twice(dnconsole_path, tab_index)
             if self._sleep_with_stop_check(2.0, check_active=self.var_buff.get):
                 return 1
             return 2
         else:
             # current_turn == 2
-            self.after(0, self.log_info, "👉 [Buff Train - LƯỢT 2] Quét tìm 'card_f/skill/f_hp.png' (85%, ROI 640,0,1280,145)...")
-            hp_x, hp_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_f/skill/f_hp.png", threshold=0.85, region=(640, 0, 1280, 145))
-            if hp_x is None or hp_y is None:
-                self.after(0, self.log_info, "⚠️ [Buff Train - LƯỢT 2] KHÔNG thấy 'card_f/skill/f_hp.png' (85%) ➔ Tap 2 lần nút Auto (190, 140) ➔ Hoãn 4.0s...")
+            self.after(0, self.log_info, f"👉 [{log_tag} - LƯỢT 2] Quét tìm '{skill_template}' (85%, ROI 640,0,1280,145)...")
+            s_x, s_y = self._find_template_on_screen(dnconsole_path, tab_index, skill_template, threshold=0.85, region=(640, 0, 1280, 145))
+            if s_x is None or s_y is None:
+                self.after(0, self.log_info, f"⚠️ [{log_tag} - LƯỢT 2] KHÔNG thấy '{skill_template}' (85%) ➔ Tap 2 lần nút Auto (190, 140) ➔ Hoãn 4.0s...")
                 self._tap_login_auto_twice(dnconsole_path, tab_index)
                 if self._sleep_with_stop_check(4.0, check_active=self.var_buff.get):
                     return 1
                 return 1
             else:
-                self.after(0, self.log_info, f"🎯 [Buff Train - LƯỢT 2] Đã thấy 'card_f/skill/f_hp.png' tại ({hp_x}, {hp_y}) ➔ Tap click chiêu...")
-                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {hp_x} {hp_y}"])
+                self.after(0, self.log_info, f"🎯 [{log_tag} - LƯỢT 2] Đã thấy '{skill_template}' tại ({s_x}, {s_y}) ➔ Tap click chiêu...")
+                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {s_x} {s_y}"])
                 if not self.var_buff.get() or self.stop_requested:
                     return 1
 
-                self.after(0, self.log_info, "🎯 [Buff Train - LƯỢT 2] Tap tọa độ mục tiêu trung tâm (905, 515)...")
+                self.after(0, self.log_info, f"🎯 [{log_tag} - LƯỢT 2] Tap tọa độ mục tiêu trung tâm (905, 515)...")
                 self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 905 515"])
                 if not self.var_buff.get() or self.stop_requested:
                     return 1
 
-                self.after(0, self.log_info, "🎯 [Buff Train - LƯỢT 2] Tap 2 lần nút Auto (190, 140) ➔ Hoãn 4.0s...")
+                self.after(0, self.log_info, f"🎯 [{log_tag} - LƯỢT 2] Tap 2 lần nút Auto (190, 140) ➔ Hoãn 4.0s...")
                 self._tap_login_auto_twice(dnconsole_path, tab_index)
                 if self._sleep_with_stop_check(4.0, check_active=self.var_buff.get):
                     return 1
                 return 1
+
+    # Tương thích ngược
+    _handle_hp_sp_buff_train_hp = _handle_hp_sp_buff_train
 
     def _handle_hp_sp_buff_hp(self, dnconsole_path: str, tab_name: str, tab_index: str):
         """
@@ -4452,7 +4461,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
         )
         lbl_sub_hp_sp.pack(side="left", padx=(6, 0))
 
-        buff_options = ["Buff Train", "Buff HP", "Buff SP", "Buff 3HP / 1SP", "HP / SP / HS"]
+        buff_options = ["Buff Train HP", "Buff Train SP", "Buff HP", "Buff SP", "Buff 3HP / 1SP", "HP / SP / HS"]
         self.combo_buff = ctk.CTkOptionMenu(
             row_combat1,
             values=buff_options,

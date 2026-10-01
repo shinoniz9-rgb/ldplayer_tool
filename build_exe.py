@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+import time
 import shutil
 import subprocess
 
@@ -20,6 +21,7 @@ print("============================================================")
 # Tắt tiến trình cũ nếu đang mở để tránh lỗi PermissionError WinError 5 khóa file
 try:
     subprocess.run(["taskkill", "/F", "/IM", "TS_Origin_Control.exe"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    time.sleep(1.0)
 except Exception:
     pass
 

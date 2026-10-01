@@ -1095,7 +1095,7 @@ HTML_PAGE = """<!DOCTYPE html>
             transition: all 0.2s ease;
         }
 
-        /* Unified Floating Mobile Control Dock (Island Design) */
+        /* Unified Floating Mobile Control Dock (Dual Floating Bars) */
         .bottom-fixed-dock {
             position: fixed;
             bottom: 0;
@@ -1106,33 +1106,39 @@ HTML_PAGE = """<!DOCTYPE html>
             margin: 0 auto;
             padding: 0 10px calc(8px + env(safe-area-inset-bottom, 0px)) 10px;
             pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
             transform: translateZ(0);
             -webkit-transform: translateZ(0);
         }
 
-        .dock-glass-shell {
-            background: rgba(10, 16, 30, 0.88);
+        /* Khung kính nổi bật cho từng thanh điều khiển */
+        .dock-shell {
+            background: rgba(10, 16, 30, 0.94);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-top: 1px solid rgba(255, 255, 255, 0.22);
-            border-radius: 24px;
-            box-shadow: 0 -8px 36px rgba(0, 0, 0, 0.7), 0 0 24px rgba(56, 189, 248, 0.1);
-            overflow: hidden;
+            border: 1.5px solid rgba(56, 189, 248, 0.45);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.75), 0 0 20px rgba(56, 189, 248, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.2);
             pointer-events: auto;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .dock-shell:hover {
+            border-color: rgba(56, 189, 248, 0.65);
+            box-shadow: 0 8px 34px rgba(0, 0, 0, 0.8), 0 0 24px rgba(56, 189, 248, 0.3);
         }
 
+        /* 1. Thanh Game - Stop - Exit (Viền nổi bật riêng) */
         .action-bar {
-            padding: 8px 10px;
+            padding: 6px 8px;
             display: flex;
             gap: 7px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 18px;
         }
 
         .btn-action {
             flex: 1;
-            padding: 11px 8px;
-            border: none;
+            padding: 10px 8px;
             border-radius: 12px;
             font-weight: 800;
             font-size: 0.84rem;
@@ -1143,7 +1149,7 @@ HTML_PAGE = """<!DOCTYPE html>
             gap: 5px;
             letter-spacing: 0.3px;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            min-height: 46px;
+            min-height: 44px;
         }
 
         .btn-action:active {
@@ -1154,67 +1160,72 @@ HTML_PAGE = """<!DOCTYPE html>
             flex: 1.3;
             background: linear-gradient(135deg, #059669 0%, #10b981 100%);
             color: #ffffff;
-            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
-            border: 1px solid rgba(52, 211, 153, 0.4);
+            border: 1.5px solid #34d399;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45), 0 0 10px rgba(52, 211, 153, 0.3);
         }
 
         .btn-stop {
             flex: 1.3;
             background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
             color: #ffffff;
-            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
-            border: 1px solid rgba(248, 113, 113, 0.4);
+            border: 1.5px solid #f87171;
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.45), 0 0 10px rgba(248, 113, 113, 0.3);
         }
 
         .btn-exit {
             flex: 1;
             background: linear-gradient(135deg, #334155 0%, #475569 100%);
             color: #f1f5f9;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1.5px solid rgba(255, 255, 255, 0.28);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
         }
 
-        /* Bottom Tab Navigation Bar */
+        /* 2. Thanh Màn Hình - Hoạt Động .... (Viền nổi bật riêng) */
         .tab-bar {
-            padding: 4px 6px 6px 6px;
+            padding: 4px 5px;
             display: flex;
             justify-content: space-around;
             align-items: center;
+            border-radius: 20px;
         }
 
         .tab-button {
-            background: transparent;
-            border: none;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             color: #94a3b8;
-            padding: 6px 4px;
+            padding: 5px 3px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 3px;
+            gap: 2px;
             font-size: 0.72rem;
             font-weight: 700;
             cursor: pointer;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             border-radius: 12px;
             flex: 1;
+            margin: 0 2px;
             position: relative;
-            min-height: 52px;
+            min-height: 48px;
         }
 
         .tab-button .tab-icon {
-            font-size: 1.3rem;
+            font-size: 1.25rem;
             line-height: 1;
             transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .tab-button.active {
             color: #38bdf8;
+            border: 1.5px solid #38bdf8;
+            background: linear-gradient(180deg, rgba(56, 189, 248, 0.18) 0%, rgba(56, 189, 248, 0.06) 100%);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.35), inset 0 0 8px rgba(56, 189, 248, 0.15);
         }
 
         .tab-button.active .tab-icon {
-            transform: scale(1.18) translateY(-2px);
-            filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.6));
+            transform: scale(1.15) translateY(-1px);
+            filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.7));
         }
 
         .tab-button.active::after {
@@ -1226,6 +1237,12 @@ HTML_PAGE = """<!DOCTYPE html>
             background: #38bdf8;
             border-radius: 3px;
             box-shadow: 0 0 8px #38bdf8;
+        }
+
+        .tab-button:hover:not(.active) {
+            border-color: rgba(56, 189, 248, 0.35);
+            background: rgba(56, 189, 248, 0.08);
+            color: #e2e8f0;
         }
 
         .tab-button:active {
@@ -1614,7 +1631,8 @@ HTML_PAGE = """<!DOCTYPE html>
                         <span class="chk-combat-sub">(Tắt Auto)</span>
                     </div>
                     <select id="combo_buff" class="combat-select-right" onchange="onComboChanged('buff', this.value)">
-                        <option value="Buff Train">Buff Train</option>
+                        <option value="Buff Train HP">Buff Train HP</option>
+                        <option value="Buff Train SP">Buff Train SP</option>
                         <option value="Buff HP">Buff HP</option>
                         <option value="Buff SP">Buff SP</option>
                         <option value="Buff 3HP / 1SP">Buff 3HP / 1SP</option>
@@ -1668,42 +1686,42 @@ HTML_PAGE = """<!DOCTYPE html>
 
     </div>
 
-    <!-- Thanh Cố Định Đáy Màn Hình (Floating Island Dock) -->
+    <!-- Thanh Cố Định Đáy Màn Hình (Dual Floating Island Bars) -->
     <div class="bottom-fixed-dock">
-        <div class="dock-glass-shell">
-            <div class="action-bar">
-                <button class="btn-action btn-launch" onclick="sendAction('launch_game')">🎮 GAME</button>
-                <button class="btn-action btn-stop" onclick="sendAction('stop')">🛑 STOP</button>
-                <button class="btn-action btn-exit" onclick="sendAction('exit_game')">🚪 EXIT</button>
-            </div>
-
-            <nav class="tab-bar">
-                <button class="tab-button active" onclick="switchTab('screen', this)">
-                    <span class="tab-icon">👁️</span>
-                    <span>Màn Hình</span>
-                </button>
-                <button class="tab-button" onclick="switchTab('activity', this)">
-                    <span class="tab-icon">⚙️</span>
-                    <span>Hoạt Động</span>
-                </button>
-                <button class="tab-button" onclick="switchTab('team', this)">
-                    <span class="tab-icon">🏆</span>
-                    <span>Sự Kiện</span>
-                </button>
-                <button class="tab-button" onclick="switchTab('daily', this)">
-                    <span class="tab-icon">📅</span>
-                    <span>Ngày</span>
-                </button>
-                <button class="tab-button" onclick="switchTab('combat', this)">
-                    <span class="tab-icon">⚔️</span>
-                    <span>Chiến Đấu</span>
-                </button>
-                <button class="tab-button" onclick="switchTab('logs', this)">
-                    <span class="tab-icon">📜</span>
-                    <span>Nhật Ký</span>
-                </button>
-            </nav>
+        <!-- 1. Thanh Game - Stop - Exit (Viền nổi bật riêng) -->
+        <div class="dock-shell action-bar">
+            <button class="btn-action btn-launch" onclick="sendAction('launch_game')">🎮 GAME</button>
+            <button class="btn-action btn-stop" onclick="sendAction('stop')">🛑 STOP</button>
+            <button class="btn-action btn-exit" onclick="sendAction('exit_game')">🚪 EXIT</button>
         </div>
+
+        <!-- 2. Thanh Màn Hình - Hoạt Động .... (Viền nổi bật riêng) -->
+        <nav class="dock-shell tab-bar">
+            <button class="tab-button active" onclick="switchTab('screen', this)">
+                <span class="tab-icon">👁️</span>
+                <span>Màn Hình</span>
+            </button>
+            <button class="tab-button" onclick="switchTab('activity', this)">
+                <span class="tab-icon">⚙️</span>
+                <span>Hoạt Động</span>
+            </button>
+            <button class="tab-button" onclick="switchTab('team', this)">
+                <span class="tab-icon">🏆</span>
+                <span>Sự Kiện</span>
+            </button>
+            <button class="tab-button" onclick="switchTab('daily', this)">
+                <span class="tab-icon">📅</span>
+                <span>Ngày</span>
+            </button>
+            <button class="tab-button" onclick="switchTab('combat', this)">
+                <span class="tab-icon">⚔️</span>
+                <span>Chiến Đấu</span>
+            </button>
+            <button class="tab-button" onclick="switchTab('logs', this)">
+                <span class="tab-icon">📜</span>
+                <span>Nhật Ký</span>
+            </button>
+        </nav>
     </div>
 
     <div class="toast" id="toast">Thông báo</div>

@@ -28,7 +28,7 @@ def get_base_dir():
     return os.path.dirname(os.path.abspath(__file__))
 
 BASE_DIR = get_base_dir()
-CONFIG_FILE = os.path.join(BASE_DIR, "config_buff_train.json")
+CONFIG_FILE = os.path.join(BASE_DIR, "config_danh_thuong.json")
 MAIN_CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
 
 def get_resource_path(relative_path: str):
@@ -42,13 +42,29 @@ def get_resource_path(relative_path: str):
         return p
     return None
 
+# Bảng tọa độ 10 mốc mục tiêu
+DANH_THUONG_TARGET_COORDS = {
+    "Sau 1": (560, 170),
+    "Sau 2": (480, 205),
+    "Sau 3": (390, 250),
+    "Sau 4": (320, 290),
+    "Sau 5": (240, 330),
+    "Trước 1": (640, 215),
+    "Trước 2": (560, 250),
+    "Trước 3": (470, 290),
+    "Trước 4": (395, 335),
+    "Trước 5": (320, 375),
+}
 
-class BuffTrainTool(ctk.CTk):
+TARGET_OPTIONS = list(DANH_THUONG_TARGET_COORDS.keys())
+
+
+class DanhThuongTool(ctk.CTk):
     def __init__(self):
         super().__init__()
 
         # Cấu hình cửa sổ siêu nhỏ gọn, ghim trên cùng màn hình
-        self.title("TS Origin - Buff Train")
+        self.title("TS Origin - Đánh Thường")
         self.geometry("305x88")
         self.resizable(False, False)
         self.attributes("-topmost", True)
@@ -72,7 +88,7 @@ class BuffTrainTool(ctk.CTk):
         self.selected_tab_name = None
         self.selected_tab_index = None
 
-        self.var_buff_train_hp = ctk.BooleanVar(value=False)
+        self.var_danh_thuong = ctk.BooleanVar(value=False)
         self.stop_requested = False
         self._stop_event = threading.Event()
         self._thread_worker = None
@@ -129,14 +145,14 @@ class BuffTrainTool(ctk.CTk):
             return None
 
     # =========================================================================
-    # GIAO DIỆN CHUẨN TOOL CHÍNH (THIẾT KẾ CARD BO GÓC & NÚT ĐỒNG BỘ)
+    # GIAO DIỆN CHUẨN TOOL MINI (THIẾT KẾ CARD BO GÓC & NÚT ĐỒNG BỘ)
     # =========================================================================
     def _build_ui(self):
         # Khung Card bo góc 8px đồng bộ theo chuẩn Card của Tool chính
         self.card_main = ctk.CTkFrame(self, corner_radius=8)
         self.card_main.pack(fill="both", expand=True, padx=6, pady=6)
 
-        # HÀNG 1: Menu chọn Tab LD | Nút Stop (Chuẩn màu xám ghi & đỏ của tool chính)
+        # HÀNG 1: Menu chọn Tab LD | Nút Stop (Chuẩn màu xám ghi & đỏ)
         row1 = ctk.CTkFrame(self.card_main, fg_color="transparent", height=28)
         row1.pack(fill="x", padx=6, pady=(6, 4))
         row1.pack_propagate(False)
@@ -172,19 +188,19 @@ class BuffTrainTool(ctk.CTk):
         )
         self.btn_stop.pack(side="right")
 
-        # HÀNG 2: [ ] [ Buff Train HP ▼ ] (Menu drop chuẩn như Linh Kính) | Nhãn trạng thái
+        # HÀNG 2: [ ] [ Sau 1 ▼ ] (Menu drop 10 mốc) | Nhãn trạng thái (không icon)
         row2 = ctk.CTkFrame(self.card_main, fg_color="transparent", height=28)
         row2.pack(fill="x", padx=6, pady=(0, 6))
         row2.pack_propagate(False)
 
-        col_buff = ctk.CTkFrame(row2, fg_color="transparent", height=26)
-        col_buff.pack(side="left")
+        col_dt = ctk.CTkFrame(row2, fg_color="transparent", height=26)
+        col_dt.pack(side="left")
 
-        self.chk_buff = ctk.CTkCheckBox(
-            col_buff,
+        self.chk_dt = ctk.CTkCheckBox(
+            col_dt,
             text="",
-            variable=self.var_buff_train_hp,
-            command=self._on_buff_hp_toggled,
+            variable=self.var_danh_thuong,
+            command=self._on_danh_thuong_toggled,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
             fg_color="#EA580C",
             hover_color="#C2410C",
@@ -195,12 +211,11 @@ class BuffTrainTool(ctk.CTk):
             corner_radius=5,
             width=16
         )
-        self.chk_buff.pack(side="left", padx=(0, 4))
+        self.chk_dt.pack(side="left", padx=(0, 4))
 
-        buff_skills = ["Buff Train HP", "Buff Train SP"]
-        self.combo_buff_skill = ctk.CTkOptionMenu(
-            col_buff,
-            values=buff_skills,
+        self.combo_target = ctk.CTkOptionMenu(
+            col_dt,
+            values=TARGET_OPTIONS,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="normal"),
             dropdown_font=ctk.CTkFont(family="Segoe UI", size=13, weight="normal"),
             text_color="#FFFFFF",
@@ -212,11 +227,12 @@ class BuffTrainTool(ctk.CTk):
             button_color="#4B5563",
             button_hover_color="#6B7280",
             corner_radius=6,
-            command=self._on_buff_skill_changed
+            command=self._on_target_changed
         )
-        self.combo_buff_skill.set("Buff Train HP")
-        self.combo_buff_skill.pack(side="left")
+        self.combo_target.set(TARGET_OPTIONS[0])
+        self.combo_target.pack(side="left")
 
+        # Nhãn trạng thái thuần text (không biểu tượng/emoji theo yêu cầu)
         self.lbl_status = ctk.CTkLabel(
             row2,
             text="Sẵn sàng",
@@ -226,11 +242,11 @@ class BuffTrainTool(ctk.CTk):
         )
         self.lbl_status.pack(side="right", fill="x", expand=True, padx=(4, 0))
 
-    def _on_buff_skill_changed(self, choice):
+    def _on_target_changed(self, choice):
         self._save_config()
 
     def _set_status(self, text: str, color: str = "#9CA3AF"):
-        """Cập nhật nhãn trạng thái trực tiếp trên luồng giao diện"""
+        """Cập nhật nhãn trạng thái trực tiếp trên luồng giao diện (thuần text không emoji)"""
         try:
             self.after(0, lambda: self.lbl_status.configure(text=text, text_color=color))
         except Exception:
@@ -269,11 +285,11 @@ class BuffTrainTool(ctk.CTk):
                 return
 
             menu = pystray.Menu(
-                pystray.MenuItem("Mở Tool Buff Train", self._show_window_from_tray, default=True),
+                pystray.MenuItem("Mở Tool Đánh Thường", self._show_window_from_tray, default=True),
                 pystray.Menu.SEPARATOR,
                 pystray.MenuItem("Thoát Ứng Dụng", self._exit_app_from_tray)
             )
-            self.tray_icon = pystray.Icon("TS_Buff_Train", icon_img, "TS Origin - Buff Train", menu)
+            self.tray_icon = pystray.Icon("TS_Danh_Thuong", icon_img, "TS Origin - Đánh Thường", menu)
             threading.Thread(target=self.tray_icon.run, daemon=True).start()
         except Exception:
             pass
@@ -357,8 +373,8 @@ class BuffTrainTool(ctk.CTk):
                     return
                 time.sleep(0.1)
 
-            # Chỉ tự động quét khi Buff Train HP đang KHÔNG chạy để dùng 0% CPU và không can thiệp ADB
-            if not self.var_buff_train_hp.get():
+            # Chỉ tự động quét khi Đánh Thường đang KHÔNG chạy để dùng 0% CPU và không can thiệp ADB
+            if not self.var_danh_thuong.get():
                 self._scan_tabs_logic(first_run=False)
 
     def _scan_tabs_logic(self, first_run: bool = False):
@@ -414,20 +430,15 @@ class BuffTrainTool(ctk.CTk):
         self._set_status(f"Chọn: {choice}", "#10B981")
 
     def _load_config(self):
-        """Tải cấu hình tab và vị trí tọa độ cửa sổ trên màn hình"""
+        """Tải cấu hình tab, mốc và vị trí tọa độ cửa sổ trên màn hình"""
         if os.path.exists(CONFIG_FILE):
             try:
                 with open(CONFIG_FILE, "r", encoding="utf-8") as f:
                     cfg = json.load(f)
                     self.selected_tab_name = cfg.get("selected_tab")
-                    skill_val = cfg.get("selected_skill")
-                    if skill_val and hasattr(self, 'combo_buff_skill'):
-                        if skill_val in ["Buff Train", "Buff Train HP", "Buff Trian HP"]:
-                            self.combo_buff_skill.set("Buff Train HP")
-                        elif skill_val in ["Buff Train SP"]:
-                            self.combo_buff_skill.set("Buff Train SP")
-                        else:
-                            self.combo_buff_skill.set("Buff Train HP")
+                    target_val = cfg.get("selected_target")
+                    if target_val and target_val in TARGET_OPTIONS and hasattr(self, 'combo_target'):
+                        self.combo_target.set(target_val)
                     pos_x = cfg.get("window_x")
                     pos_y = cfg.get("window_y")
                     if pos_x is not None and pos_y is not None:
@@ -450,8 +461,8 @@ class BuffTrainTool(ctk.CTk):
                     cfg_data = {}
 
             cfg_data["selected_tab"] = self.selected_tab_name
-            if hasattr(self, 'combo_buff_skill'):
-                cfg_data["selected_skill"] = self.combo_buff_skill.get()
+            if hasattr(self, 'combo_target'):
+                cfg_data["selected_target"] = self.combo_target.get()
             # Chỉ ghi đè tọa độ khi cửa sổ đang mở bình thường
             if self.state() == "normal":
                 x = self.winfo_x()
@@ -468,27 +479,26 @@ class BuffTrainTool(ctk.CTk):
     # =========================================================================
     # ĐIỀU KHIỂN BẬT / DỪNG
     # =========================================================================
-    def _on_buff_hp_toggled(self):
-        if self.var_buff_train_hp.get():
+    def _on_danh_thuong_toggled(self):
+        if self.var_danh_thuong.get():
             self.stop_requested = False
             self._stop_event.clear()
 
             if not self.selected_tab_index:
                 self._set_status("Chưa chọn Tab!", "#EF4444")
-                self.var_buff_train_hp.set(False)
+                self.var_danh_thuong.set(False)
                 return
 
             dnconsole_path = self._get_dnconsole_path()
             if not dnconsole_path:
                 self._set_status("Lỗi LDPlayer!", "#EF4444")
-                self.var_buff_train_hp.set(False)
+                self.var_danh_thuong.set(False)
                 return
 
-            # Khóa menu chọn Tab và menu chọn Skill khi đang chạy để chống đổi nhầm
+            # Khóa menu chọn Tab và menu chọn Mốc khi đang chạy để chống đổi nhầm
             try:
                 self.combo_tabs.configure(state="disabled")
-                if hasattr(self, 'combo_buff_skill'):
-                    self.combo_buff_skill.configure(state="disabled")
+                self.combo_target.configure(state="disabled")
             except Exception:
                 pass
 
@@ -496,7 +506,7 @@ class BuffTrainTool(ctk.CTk):
             if self._thread_worker and self._thread_worker.is_alive():
                 return
             self._thread_worker = threading.Thread(
-                target=self._run_buff_train_hp_standalone,
+                target=self._run_danh_thuong_standalone,
                 args=(dnconsole_path, self.selected_tab_name, self.selected_tab_index),
                 daemon=True
             )
@@ -506,8 +516,7 @@ class BuffTrainTool(ctk.CTk):
             self._stop_event.set()
             try:
                 self.combo_tabs.configure(state="normal")
-                if hasattr(self, 'combo_buff_skill'):
-                    self.combo_buff_skill.configure(state="normal")
+                self.combo_target.configure(state="normal")
             except Exception:
                 pass
             self._set_status("Đã dừng", "#EF4444")
@@ -516,11 +525,10 @@ class BuffTrainTool(ctk.CTk):
         """Nút Stop khẩn cấp: ngắt tức thì trong < 0.02s"""
         self.stop_requested = True
         self._stop_event.set()
-        self.var_buff_train_hp.set(False)
+        self.var_danh_thuong.set(False)
         try:
             self.combo_tabs.configure(state="normal")
-            if hasattr(self, 'combo_buff_skill'):
-                self.combo_buff_skill.configure(state="normal")
+            self.combo_target.configure(state="normal")
         except Exception:
             pass
         self._set_status("Đã dừng", "#EF4444")
@@ -529,7 +537,7 @@ class BuffTrainTool(ctk.CTk):
         """Tạm dừng ngủ ngầm siêu tốc: Đánh thức tức thì (< 0.02s) khi dừng"""
         start = time.time()
         while time.time() - start < seconds:
-            if self.stop_requested or self._stop_event.is_set() or not self.var_buff_train_hp.get():
+            if self.stop_requested or self._stop_event.is_set() or not self.var_danh_thuong.get():
                 return True
             time.sleep(0.02)
         return False
@@ -603,9 +611,9 @@ class BuffTrainTool(ctk.CTk):
 
         # Fallback qua dnconsole screencap nếu direct ADB không sẵn sàng
         try:
-            temp_local = os.path.join(tempfile.gettempdir(), f"ts_bt_cap_{tab_index}.png")
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell screencap -p /sdcard/ts_bt.png"])
-            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"pull /sdcard/ts_bt.png \"{temp_local}\""])
+            temp_local = os.path.join(tempfile.gettempdir(), f"ts_dt_cap_{tab_index}.png")
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell screencap -p /sdcard/ts_dt.png"])
+            self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"pull /sdcard/ts_dt.png \"{temp_local}\""])
             if os.path.exists(temp_local) and os.path.getsize(temp_local) > 0:
                 d = np.fromfile(temp_local, dtype=np.uint8)
                 img = cv2.imdecode(d, cv2.IMREAD_COLOR)
@@ -695,19 +703,44 @@ class BuffTrainTool(ctk.CTk):
     def _tap_login_auto_twice(self, dnconsole_path: str, tab_index: str):
         """Tap 2 lần cách nhau 0.15s vào tọa độ nút Auto (190, 140)"""
         for _ in range(2):
-            if self.stop_requested or self._stop_event.is_set() or not self.var_buff_train_hp.get():
+            if self.stop_requested or self._stop_event.is_set() or not self.var_danh_thuong.get():
                 break
             self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 190 140"])
             time.sleep(0.15)
 
+    def _execute_fast_danh_thuong_sequence(self, dnconsole_path: str, tab_index: str, tx: int, ty: int):
+        """Thực thi chuỗi 4 cú tap liên hoàn hoãn 0s: (1160, 680) -> (tx, ty) -> (1160, 680) -> (tx, ty)
+        Sử dụng ghép chuỗi lệnh shell ADB để thực thi siêu tốc (< 0.03s), không bị lag CPU Windows."""
+        tab_key = str(tab_index)
+        active_dev = self._active_adb_device.get(tab_key)
+        adb_path = os.path.join(self.ld_path, "adb.exe")
+        shell_cmd = f"input tap 1160 680 && input tap {tx} {ty} && input tap 1160 680 && input tap {tx} {ty}"
+
+        # 1. Ưu tiên Direct ADB nếu có thiết bị kết nối trực tiếp
+        if active_dev and os.path.exists(adb_path):
+            try:
+                creation_flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+                subprocess.run(
+                    [adb_path, "-s", active_dev, "shell", shell_cmd],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=5,
+                    creationflags=creation_flags
+                )
+                return
+            except Exception:
+                pass
+
+        # 2. Fallback qua dnconsole adb
+        self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell {shell_cmd}"])
+
     # =========================================================================
-    # CORE LOGIC CHẾ ĐỘ BUFF TRAIN HP (KẾ THỪA 100% CƠ CHẾ TOOL TỔNG)
+    # CORE LOGIC CHẾ ĐỘ ĐÁNH THƯỜNG (KẾ THỪA 100% CƠ CHẾ BƯỚC 0 CỦA BUFF TRAIN)
     # =========================================================================
-    def _run_buff_train_hp_standalone(self, dnconsole_path: str, tab_name: str, tab_index: str):
+    def _run_danh_thuong_standalone(self, dnconsole_path: str, tab_name: str, tab_index: str):
         try:
-            train_turn = 1
-            while self.var_buff_train_hp.get() and not self.stop_requested:
-                train_turn = self._handle_buff_train_hp_turn(dnconsole_path, tab_name, tab_index, train_turn)
+            while self.var_danh_thuong.get() and not self.stop_requested:
+                self._handle_danh_thuong_turn(dnconsole_path, tab_name, tab_index)
                 if self._sleep_with_stop_check(0.1):
                     break
         except Exception:
@@ -716,34 +749,31 @@ class BuffTrainTool(ctk.CTk):
             self._thread_worker = None
             try:
                 self.after(0, lambda: self.combo_tabs.configure(state="normal"))
-                if hasattr(self, 'combo_buff_skill'):
-                    self.after(0, lambda: self.combo_buff_skill.configure(state="normal"))
+                self.after(0, lambda: self.combo_target.configure(state="normal"))
             except Exception:
                 pass
-            if self.stop_requested or not self.var_buff_train_hp.get():
+            if self.stop_requested or not self.var_danh_thuong.get():
                 self._set_status("Đã dừng", "#EF4444")
             else:
                 self._set_status("Sẵn sàng", "#9CA3AF")
 
-    def _handle_buff_train_hp_turn(self, dnconsole_path: str, tab_name: str, tab_index: str, train_turn: int) -> int:
-        if not self.var_buff_train_hp.get() or self.stop_requested:
-            return train_turn
+    def _handle_danh_thuong_turn(self, dnconsole_path: str, tab_name: str, tab_index: str):
+        if not self.var_danh_thuong.get() or self.stop_requested:
+            return
 
-        current_turn = 1 if train_turn not in (1, 2) else train_turn
-        self._set_status(f"Chờ lượt {current_turn}...", "#38BDF8")
+        self._set_status("Chờ lượt đánh...", "#38BDF8")
 
         found_turn = False
-        while not self.stop_requested and self.var_buff_train_hp.get():
-            # 1. Quét song song f_vaotran.png (ROI 1215, 0, 1280, 45, 80%) kiểm tra hết trận / ngoài map
+        while not self.stop_requested and self.var_danh_thuong.get():
+            # 1. Quét song song f_vaotran.png (ROI 1215, 0, 1280, 45, 80%) kiểm tra hết trận / ngoài trận
             vt_x, vt_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_f/f_vaotran.png", threshold=0.80, region=(1215, 0, 1280, 45))
             if vt_x is not None and vt_y is not None:
                 self._set_status("Hết trận ➔ Tap Auto", "#F59E0B")
-                current_turn = 1
                 self._tap_login_auto_twice(dnconsole_path, tab_index)
-                self._set_status("Hết trận ➔ Chờ trận mới", "#F59E0B")
-                while not self.stop_requested and self.var_buff_train_hp.get():
+                self._set_status("Chờ trận mới...", "#F59E0B")
+                while not self.stop_requested and self.var_danh_thuong.get():
                     if self._sleep_with_stop_check(0.35):
-                        return 1
+                        return
                     # Kiểm tra f_dung.png xuất hiện (đã vào trận và đến lượt)
                     d_chk_x, d_chk_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_f/f_dung.png", threshold=0.80, region=(640, 0, 1280, 145))
                     if d_chk_x is not None and d_chk_y is not None:
@@ -755,93 +785,85 @@ class BuffTrainTool(ctk.CTk):
                         break
 
                 # Hoãn 0.6s để màn hình load đủ giao diện trận đấu
-                self._set_status("Vào trận ➔ Chờ 0.6s load", "#38BDF8")
+                self._set_status("Vào trận ➔ Chờ load", "#38BDF8")
                 if self._sleep_with_stop_check(0.6):
-                    return 1
+                    return
 
                 if found_turn:
-                    current_turn = 1
                     break
                 else:
-                    self._set_status("Chờ lượt 1...", "#38BDF8")
+                    self._set_status("Chờ lượt đánh...", "#38BDF8")
 
-            # 2. Quét f_dung.png (ROI 640, 0, 1280, 145, 80%) kiểm tra đến lượt đánh
+            # 2. Quét f_dung.png (ROI 640, 0, 1280, 145, 80%) kiểm tra đến lượt đánh (CHỈ QUÉT, KHÔNG TAP)
             d_x, d_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_f/f_dung.png", threshold=0.80, region=(640, 0, 1280, 145))
             if d_x is not None and d_y is not None:
                 found_turn = True
                 break
 
             if self._sleep_with_stop_check(0.35):
-                return current_turn
+                return
 
-        if not found_turn or not self.var_buff_train_hp.get() or self.stop_requested:
-            return current_turn
+        if not found_turn or not self.var_danh_thuong.get() or self.stop_requested:
+            return
 
-        # XỬ LÝ LƯỢT ĐÁNH
-        if current_turn == 1:
-            self._set_status("Lượt 1: Auto ➔ Chờ 2s", "#10B981")
-            self._tap_login_auto_twice(dnconsole_path, tab_index)
-            if self._sleep_with_stop_check(2.0):
-                return 1
-            return 2
-        else:
-            # current_turn == 2
-            selected_skill = self.combo_buff_skill.get() if hasattr(self, 'combo_buff_skill') else "Buff Train HP"
-            is_sp = (selected_skill == "Buff Train SP")
-            skill_tag = "SP" if is_sp else "HP"
-            skill_template = "card_f/skill/f_sp.png" if is_sp else "card_f/skill/f_hp.png"
+        # =====================================================================
+        # THAO TÁC MỚI KHI ĐẾN LƯỢT ĐÁNH (F_DUNG XUẤT HIỆN)
+        # =====================================================================
+        selected_target = self.combo_target.get() if hasattr(self, 'combo_target') else "Sau 1"
+        target_coord = DANH_THUONG_TARGET_COORDS.get(selected_target, (560, 170))
+        tx, ty = target_coord
 
-            self._set_status(f"Lượt 2: Quét chiêu {skill_tag}...", "#38BDF8")
-            s_x, s_y = self._find_template_on_screen(dnconsole_path, tab_index, skill_template, threshold=0.85, region=(640, 0, 1280, 145))
-            if s_x is None or s_y is None:
-                self._set_status(f"Lượt 2: Không {skill_tag} ➔ Auto (chờ 4s)", "#F59E0B")
-                self._tap_login_auto_twice(dnconsole_path, tab_index)
-                if self._sleep_with_stop_check(4.0):
-                    return 1
-                return 1
-            else:
-                self._set_status(f"Lượt 2: Buff {skill_tag} ➔ Auto (chờ 4s)", "#10B981")
-                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {s_x} {s_y}"])
-                if not self.var_buff_train_hp.get() or self.stop_requested:
-                    return 1
+        self._set_status(f"Đến lượt ➔ Tap {selected_target}", "#10B981")
 
-                self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 905 515"])
-                if not self.var_buff_train_hp.get() or self.stop_requested:
-                    return 1
+        # 1. Tap tọa độ (1160, 680) hoãn 0s
+        # 2. Tap tọa độ (theo mốc chọn ở menu drop Sau 1 > Sau 5 , Trước 1 > Trước 5) hoãn 0s
+        # 3. Tap tọa độ (1160, 680) hoãn 0s
+        # 4. Tap tọa độ (theo mốc chọn ở menu drop Sau 1 > Sau 5 , Trước 1 > Trước 5) hoãn 0s
+        self._execute_fast_danh_thuong_sequence(dnconsole_path, tab_index, tx, ty)
 
-                self._tap_login_auto_twice(dnconsole_path, tab_index)
-                if self._sleep_with_stop_check(4.0):
-                    return 1
-                return 1
+        if not self.var_danh_thuong.get() or self.stop_requested:
+            return
+
+        # 5. Hoãn (Sleep) 3.0s (sử dụng sleep ngắt quãng tức thì)
+        self._set_status("Chờ 3.0s ➔ Lặp lại", "#38BDF8")
+        if self._sleep_with_stop_check(3.0):
+            return
+
+        # 6. Lặp lại chu kỳ
 
 
 def _ensure_single_instance():
     """Đảm bảo chỉ có duy nhất 1 phiên bản tool chạy cùng lúc trên Windows.
     Nếu phát hiện tool đã mở trước đó, khôi phục cửa sổ tool cũ lên đầu màn hình và thoát ngay."""
-    import ctypes
+    if os.name != 'nt':
+        return None
 
-    MUTEX_NAME = "Global\\TS_Origin_Buff_Train_SingleInstance_Mutex_Unique"
-    kernel32 = ctypes.windll.kernel32
-    mutex = kernel32.CreateMutexW(None, False, MUTEX_NAME)
+    import ctypes
+    from ctypes import wintypes
+
+    MUTEX_NAME = "Global\\TS_Origin_Danh_Thuong_SingleInstance_Mutex_Unique"
+    WINDOW_TITLE = "TS Origin - Đánh Thường"
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    user32 = ctypes.WinDLL("user32", use_last_error=True)
+
+    mutex = kernel32.CreateMutexW(None, True, MUTEX_NAME)
     last_error = kernel32.GetLastError()
     ERROR_ALREADY_EXISTS = 183
 
     if last_error == ERROR_ALREADY_EXISTS:
-        try:
-            user32 = ctypes.windll.user32
-            hwnd = user32.FindWindowW(None, "TS Origin - Buff Train")
-            if hwnd:
-                user32.ShowWindow(hwnd, 9)  # SW_RESTORE = 9
-                user32.SetForegroundWindow(hwnd)
-        except Exception:
-            pass
-        os._exit(0)
+        # Cửa sổ cũ đã tồn tại -> Tìm và kích hoạt lên đầu
+        hwnd = user32.FindWindowW(None, WINDOW_TITLE)
+        if hwnd:
+            SW_RESTORE = 9
+            user32.ShowWindow(hwnd, SW_RESTORE)
+            user32.SetForegroundWindow(hwnd)
+        sys.exit(0)
+
     return mutex
 
 
 if __name__ == "__main__":
-    import multiprocessing
-    multiprocessing.freeze_support()
-    _app_instance_mutex = _ensure_single_instance()
-    app = BuffTrainTool()
+    _mutex = _ensure_single_instance()
+    app = DanhThuongTool()
     app.mainloop()
