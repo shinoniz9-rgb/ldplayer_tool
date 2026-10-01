@@ -212,9 +212,9 @@
             "combo_phong_thu_target": "Chart",
             "var_truy_kich": false,
             "combo_truy_kich_quai": "(Chưa có quái)",
-            "var_nhan_thu": true,
+            "var_nhan_thu": false,
             "combo_nhan_thu_time": "Tất Cả",
-            "var_hen_gio": true,
+            "var_hen_gio": false,
             "var_hen_gio_time": "05:00"
         },
         "Clone": {

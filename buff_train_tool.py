@@ -728,9 +728,9 @@ class BuffTrainTool(ctk.CTk):
                     if vt_chk_x is None or vt_chk_y is None:
                         break
 
-                # Hoãn 0.8s để màn hình load đủ giao diện trận đấu
-                self._set_status("Vào trận ➔ Chờ 0.8s load", "#38BDF8")
-                if self._sleep_with_stop_check(0.8):
+                # Hoãn 0.6s để màn hình load đủ giao diện trận đấu
+                self._set_status("Vào trận ➔ Chờ 0.6s load", "#38BDF8")
+                if self._sleep_with_stop_check(0.6):
                     return 1
 
                 if found_turn:
@@ -753,9 +753,9 @@ class BuffTrainTool(ctk.CTk):
 
         # XỬ LÝ LƯỢT ĐÁNH
         if current_turn == 1:
-            self._set_status("Lượt 1: Auto ➔ Chờ 1s", "#10B981")
+            self._set_status("Lượt 1: Auto ➔ Chờ 2s", "#10B981")
             self._tap_login_auto_twice(dnconsole_path, tab_index)
-            if self._sleep_with_stop_check(1.0):
+            if self._sleep_with_stop_check(2.0):
                 return 1
             return 2
         else:
@@ -763,23 +763,23 @@ class BuffTrainTool(ctk.CTk):
             self._set_status("Lượt 2: Quét chiêu HP...", "#38BDF8")
             hp_x, hp_y = self._find_template_on_screen(dnconsole_path, tab_index, "card_f/skill/f_hp.png", threshold=0.85, region=(640, 0, 1280, 145))
             if hp_x is None or hp_y is None:
-                self._set_status("Lượt 2: Không HP ➔ Auto", "#F59E0B")
+                self._set_status("Lượt 2: Không HP ➔ Auto (chờ 4s)", "#F59E0B")
                 self._tap_login_auto_twice(dnconsole_path, tab_index)
-                if self._sleep_with_stop_check(1.0):
+                if self._sleep_with_stop_check(4.0):
                     return 1
                 return 1
             else:
-                self._set_status("Lượt 2: Buff HP (905,515)", "#10B981")
+                self._set_status("Lượt 2: Buff HP ➔ Auto (chờ 4s)", "#10B981")
                 self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", f"shell input tap {hp_x} {hp_y}"])
-                if self._sleep_with_stop_check(0.2):
+                if not self.var_buff_train.get() or self.stop_requested:
                     return 1
 
                 self._exec_cmd([dnconsole_path, "adb", "--index", str(tab_index), "--command", "shell input tap 905 515"])
-                if self._sleep_with_stop_check(0.2):
+                if not self.var_buff_train.get() or self.stop_requested:
                     return 1
 
                 self._tap_login_auto_twice(dnconsole_path, tab_index)
-                if self._sleep_with_stop_check(1.0):
+                if self._sleep_with_stop_check(4.0):
                     return 1
                 return 1
 
